@@ -11,7 +11,7 @@
     "shell:default",
     {
       "identifier": "shell:allow-execute",
-      "allow": [{ "name": "src-core", "sidecar": true }]
+      "allow": [{ "name": "bin/src-core", "sidecar": true }]
     }
   ]
 }
