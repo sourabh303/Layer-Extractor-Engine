@@ -19,6 +19,14 @@ class ExtractionRequest(BaseModel):
     source_path: str
     """The absolute path to the source image file"""
 
+class ExtractionMetadataResponse(BaseModel):
+    status: str
+    message: str
+    source_path: str
+    layers_extracted: int
+    hardware_mode_used: str
+    output_paths: list[str] = []
+
     @staticmethod
     def from_dict(obj: Any) -> 'ExtractionRequest':
         assert isinstance(obj, dict)

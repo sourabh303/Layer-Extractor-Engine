@@ -2,3 +2,7 @@ fastapi
 uvicorn
 onnxruntime-gpu
 pydantic
+torch
+torchvision
+opencv-python
+pillow
