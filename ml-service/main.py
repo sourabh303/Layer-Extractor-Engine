@@ -1,22 +1,27 @@
+import os
 import argparse
+import asyncio
+import uuid
+import cv2
+import numpy as np
+from PIL import Image
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from models.extraction_request import ExtractionRequest
+from models.extraction_request import ExtractionRequest, ExtractionMetadataResponse
 from utils.hardware import get_hardware_mode
+from pipeline.inference import AIInferencePipeline
+from pipeline.geometry import GeometryCleanupPipeline
 
 app = FastAPI(title="ML Service - AI Textile Layer Extraction")
 
+# Initialize models
+inference_pipeline = AIInferencePipeline()
+geometry_pipeline = GeometryCleanupPipeline()
+
 class StatusResponse(BaseModel):
     mode: str
-
-class ExtractionMetadataResponse(BaseModel):
-    status: str
-    message: str
-    source_path: str
-    layers_extracted: int
-    hardware_mode_used: str
 
 @app.get("/status", response_model=StatusResponse)
 def get_status():
@@ -28,9 +33,9 @@ def get_status():
     return StatusResponse(mode=mode)
 
 @app.post("/extract", response_model=ExtractionMetadataResponse)
-def run_extraction(request: ExtractionRequest):
+async def run_extraction(request: ExtractionRequest):
     """
-    Mock endpoint for image extraction.
+    Executes the full AI Extraction and Geometry Cleanup pipeline.
     Strictly accepts the absolute source_path to respect memory constraints
     and never transmits raw image bytes over HTTP.
     """
@@ -38,14 +43,78 @@ def run_extraction(request: ExtractionRequest):
 
     print(f"Received extraction request for: {source_path}")
 
-    # Return mock metadata
-    return ExtractionMetadataResponse(
-        status="success",
-        message="Mock extraction complete.",
-        source_path=source_path,
-        layers_extracted=4,
-        hardware_mode_used=get_hardware_mode()
-    )
+    if not os.path.exists(source_path):
+        return ExtractionMetadataResponse(
+            status="error",
+            message=f"File not found: {source_path}",
+            source_path=source_path,
+            layers_extracted=0,
+            hardware_mode_used=get_hardware_mode(),
+            output_paths=[]
+        )
+
+    # Create temp directory
+    temp_dir = os.path.join(os.environ.get("TEMP", "/tmp"), "AILayerEngine")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    try:
+        # Load the source image using OpenCV
+        # Ensure it's read in BGR format
+        original_image = cv2.imread(source_path)
+        if original_image is None:
+            raise ValueError(f"Could not decode image at {source_path}")
+
+        # 1. Detection
+        bboxes = inference_pipeline.run_rt_detr_detection(source_path)
+        output_paths = []
+
+        # Process each detected motif
+        for i, bbox in enumerate(bboxes):
+            print(f"Processing bounding box {i+1}/{len(bboxes)}...")
+
+            # 2. Segmentation (with Timeout Graceful Fallback)
+            mask = None
+            try:
+                # 45 second timeout constraint
+                mask = await asyncio.wait_for(
+                    inference_pipeline.run_sam2_segmentation(source_path, bbox),
+                    timeout=45.0
+                )
+            except asyncio.TimeoutError:
+                print("SAM2 segmentation timed out! Falling back to RT-DETR mask.")
+                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+            except Exception as e:
+                print(f"SAM2 failed: {e}. Falling back to RT-DETR mask.")
+                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+
+            # 3. Geometry Cleanup (CRITICAL)
+            flat_layer_rgba = geometry_pipeline.process_layer(original_image, mask)
+
+            # Save strictly flat geometry PNG output
+            output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
+            output_path = os.path.join(temp_dir, output_filename)
+            cv2.imwrite(output_path, flat_layer_rgba)
+            output_paths.append(output_path)
+
+        return ExtractionMetadataResponse(
+            status="success",
+            message="Extraction and Geometry Cleanup complete.",
+            source_path=source_path,
+            layers_extracted=len(output_paths),
+            hardware_mode_used=get_hardware_mode(),
+            output_paths=output_paths
+        )
+
+    except Exception as e:
+        print(f"Extraction failed: {e}")
+        return ExtractionMetadataResponse(
+            status="error",
+            message=str(e),
+            source_path=source_path,
+            layers_extracted=0,
+            hardware_mode_used=get_hardware_mode(),
+            output_paths=[]
+        )
 
 
 if __name__ == "__main__":
