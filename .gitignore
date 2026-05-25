@@ -2,3 +2,5 @@ node_modules/
 bin/
 obj/
 *.log
+**/__pycache__/
+ml-service/venv/

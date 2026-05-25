@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate:csharp": "quicktype -s schema ExtractionRequest.json -o ../desktop-app/src-core/Models/ExtractionRequest.cs --namespace Models --framework SystemTextJson"
+    "generate:csharp": "quicktype -s schema ExtractionRequest.json -o ../desktop-app/src-core/Models/ExtractionRequest.cs --namespace Models --framework SystemTextJson",
+    "generate:python": "quicktype -s schema ExtractionRequest.json -o ../ml-service/models/extraction_request.py --python-version 3.7 --pydantic-base-model"
   },
   "devDependencies": {
     "quicktype": "^23.2.6"
