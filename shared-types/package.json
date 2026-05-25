@@ -1,0 +1,12 @@
+{
+  "name": "shared-types",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "generate:csharp": "quicktype -s schema ExtractionRequest.json -o ../desktop-app/src-core/Models/ExtractionRequest.cs --namespace Models --framework SystemTextJson"
+  },
+  "devDependencies": {
+    "quicktype": "^23.2.6"
+  }
+}
