@@ -13,7 +13,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5173", "tauri://localhost", "https://tauri.localhost", "http://tauri.localhost")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

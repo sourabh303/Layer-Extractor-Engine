@@ -19,6 +19,7 @@ function App() {
 
   useEffect(() => {
     // For Playwright Testing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleMockState = (e: any) => {
       setHardwareMode(e.detail.hardwareMode);
       setSidecarPort(e.detail.sidecarPort);
