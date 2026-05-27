@@ -38,7 +38,7 @@ class GeometryCleanupPipeline:
         flat_output = np.zeros((h, w, 4), dtype=np.uint8)
 
         # Process each quantized color cluster independently to generate flat polygons
-        unique_colors = np.unique(quantized_img.reshape(-1, 3), axis=0)
+        unique_colors = np.unique(centers, axis=0)
 
         for color in unique_colors:
             # Skip the black background color
