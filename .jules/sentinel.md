@@ -1,0 +1,4 @@
+## 2024-05-27 - [Desktop Companion App CORS & CSP Vulnerability]
+**Vulnerability:** The .NET orchestrator had `AllowAnyOrigin()` CORS policy and the Tauri frontend had `csp: null`. This allowed any public website to make unauthorized requests to the local desktop orchestrator on `127.0.0.1` and left the frontend vulnerable to XSS and injection.
+**Learning:** In local desktop companion apps, especially those binding to loopback for sidecar communication, wildcard CORS and missing CSPs are critical risks that can expose the local machine's services or file system to malicious sites visited in the browser.
+**Prevention:** Always restrict CORS to the specific `localhost` or `tauri://localhost` origins used by the frontend, and ensure the Tauri frontend defines a strict Content Security Policy limiting connections and sources.
