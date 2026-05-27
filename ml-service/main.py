@@ -13,12 +13,14 @@ from models.extraction_request import ExtractionRequest, ExtractionMetadataRespo
 from utils.hardware import get_hardware_mode
 from pipeline.inference import AIInferencePipeline
 from pipeline.geometry import GeometryCleanupPipeline
+from pipeline.vectorization import VectorizationPipeline
 
 app = FastAPI(title="ML Service - AI Textile Layer Extraction")
 
 # Initialize models
 inference_pipeline = AIInferencePipeline()
 geometry_pipeline = GeometryCleanupPipeline()
+vectorization_pipeline = VectorizationPipeline()
 
 class StatusResponse(BaseModel):
     mode: str
@@ -116,6 +118,32 @@ async def run_extraction(request: ExtractionRequest):
             output_paths=[]
         )
 
+class VectorizeRequest(BaseModel):
+    source_path: str
+    output_path: str
+
+class VectorizeResponse(BaseModel):
+    status: str
+    svg_path: str
+
+@app.post("/vectorize", response_model=VectorizeResponse)
+def run_vectorization(request: VectorizeRequest):
+    """
+    Endpoint specifically to run the Raster-to-SVG vectorization step.
+    Enforces strict polygon generation explicitly disabling curve fitting.
+    """
+    if not os.path.exists(request.source_path):
+        return VectorizeResponse(status="error", svg_path="")
+
+    try:
+        svg_path = vectorization_pipeline.process_layer_to_svg(
+            request.source_path,
+            request.output_path
+        )
+        return VectorizeResponse(status="success", svg_path=svg_path)
+    except Exception as e:
+        print(f"Vectorization failed: {e}")
+        return VectorizeResponse(status="error", svg_path="")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start the ML Service.")

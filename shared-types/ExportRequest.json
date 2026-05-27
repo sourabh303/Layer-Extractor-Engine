@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExportRequest",
+  "type": "object",
+  "properties": {
+    "destination_folder": {
+      "type": "string",
+      "description": "The absolute path to the destination folder chosen by the user"
+    },
+    "formats": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["SVG", "PSD", "PNG", "TIFF_CMYK", "TIFF_RGB"]
+      },
+      "description": "An array of requested export formats"
+    }
+  },
+  "required": ["destination_folder", "formats"]
+}
