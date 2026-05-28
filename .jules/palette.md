@@ -1,0 +1,3 @@
+## 2024-05-28 - Dynamic Background Service State Communication
+**Learning:** Background services and sidecars (like Tauri sidecars) have non-trivial initialization and processing times. If UI states depend on these backend processes without communicating them properly, it causes confusion. Ensure UI buttons communicate disabled states to assistive technologies using `aria-busy` and explicit `title` tooltips, and ensure status bars use `role="status"` and `aria-live="polite"` so screen readers hear updates when connections happen.
+**Action:** When working on apps with sidecar or background processes, always pair `disabled` state on buttons with contextual reasoning (`title` or similar tooltip) and ensure loading states propagate screen reader updates.
