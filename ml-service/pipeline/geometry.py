@@ -16,22 +16,30 @@ class GeometryCleanupPipeline:
         _, binary_mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
 
         # Extract the ROI specified by the mask
-        masked_img = cv2.bitwise_and(image, image, mask=binary_mask)
+        # ⚡ Bolt Optimization: Only extract and process pixels that are strictly in the foreground
+        # This reduces K-Means time from O(W*H) to O(N) where N is number of foreground pixels
+        fg_mask = binary_mask > 0
+        pixels = image[fg_mask]
+
+        # If the mask is empty, return an empty image early
+        if len(pixels) == 0:
+            h, w = image.shape[:2]
+            return np.zeros((h, w, 4), dtype=np.uint8)
 
         # 1. K-Means Quantization
-        # Flatten image to 2D array of pixels for K-Means
-        pixels = masked_img.reshape((-1, 3))
         pixels = np.float32(pixels)
 
+        # Handle edge case where number of foreground pixels is less than K
+        k = min(KMEANS_MAX_CLUSTERS, len(pixels))
+
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
-        _, labels, centers = cv2.kmeans(pixels, KMEANS_MAX_CLUSTERS, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        _, labels, centers = cv2.kmeans(pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
         centers = np.uint8(centers)
-        quantized_pixels = centers[labels.flatten()]
-        quantized_img = quantized_pixels.reshape(masked_img.shape)
 
-        # Re-apply mask as K-Means might have quantized the black background to something else
-        quantized_img = cv2.bitwise_and(quantized_img, quantized_img, mask=binary_mask)
+        # Reconstruct full image size with quantized pixels inside the mask
+        quantized_img = np.zeros_like(image)
+        quantized_img[fg_mask] = centers[labels.flatten()]
 
         # Create an empty RGBA output image (transparent background)
         h, w = image.shape[:2]
