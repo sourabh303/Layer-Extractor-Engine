@@ -122,7 +122,7 @@ function App() {
       <div style={{ padding: '10px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0, fontSize: '18px' }}>AI Textile Layer Extraction</h2>
         {hardwareMode === 'CPU' && (
-          <div style={{ color: '#ffb703', fontSize: '14px', fontWeight: 'bold' }}>
+          <div role="alert" style={{ color: '#ffb703', fontSize: '14px', fontWeight: 'bold' }}>
             Hardware Acceleration Disabled: Segmentations may take 30 to 60 seconds per layer
           </div>
         )}
@@ -136,7 +136,18 @@ function App() {
           <button
             onClick={handleUpload}
             disabled={isProcessing || !sidecarPort}
-            style={{ padding: '10px', backgroundColor: '#4361ee', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+            title={isProcessing ? 'Currently processing image...' : (!sidecarPort ? 'Waiting for sidecar connection...' : 'Upload an image')}
+            aria-busy={isProcessing}
+            style={{
+              padding: '10px',
+              backgroundColor: '#4361ee',
+              color: '#fff',
+              border: 'none',
+              cursor: (isProcessing || !sidecarPort) ? 'not-allowed' : 'pointer',
+              opacity: (isProcessing || !sidecarPort) ? 0.6 : 1,
+              borderRadius: '4px',
+              transition: 'opacity 0.2s, cursor 0.2s'
+            }}
           >
             {isProcessing ? 'Processing...' : 'Upload Image'}
           </button>
@@ -173,7 +184,7 @@ function App() {
       </div>
 
       {/* Bottom Status Bar */}
-      <div style={{ padding: '10px 20px', borderTop: '1px solid #333', fontSize: '12px', display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
+      <div role="status" aria-live="polite" style={{ padding: '10px 20px', borderTop: '1px solid #333', fontSize: '12px', display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
         <div>{isProcessing ? 'Running mock extraction...' : 'Ready'}</div>
         <div>
           {sidecarPort ? `Sidecar Connected (Port: ${sidecarPort})` : 'Waiting for Sidecar...'} | {hardwareMode} Mode
