@@ -7,13 +7,20 @@ export interface ExportRequest {
      * An array of requested export formats
      */
     formats: Format[];
-    [property: string]: any;
+    [property: string]: unknown;
 }
 
-export enum Format {
-    PNG = "PNG",
-    Psd = "PSD",
-    SVG = "SVG",
-    TiffCmyk = "TIFF_CMYK",
-    TiffRGB = "TIFF_RGB",
-}
+export type Format =
+    | "PNG"
+    | "PSD"
+    | "SVG"
+    | "TIFF_CMYK"
+    | "TIFF_RGB";
+
+export const Format = {
+    PNG: "PNG" as const,
+    Psd: "PSD" as const,
+    SVG: "SVG" as const,
+    TiffCmyk: "TIFF_CMYK" as const,
+    TiffRGB: "TIFF_RGB" as const,
+};

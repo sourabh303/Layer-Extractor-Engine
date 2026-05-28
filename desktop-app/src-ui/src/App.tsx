@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
-import { Command } from '@tauri-apps/plugin-shell';
+import { useEffect, useState } from 'react';
+import { Command, open as openShell } from '@tauri-apps/plugin-shell';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Stage, Layer, Rect } from 'react-konva';
 import { useStore } from './store';
 import type { ExtractionRequest } from './types/ExtractionRequest';
+import { Format } from './types/ExportRequest';
+import type { ExportRequest } from './types/ExportRequest';
 
 function App() {
   const {
@@ -14,8 +16,21 @@ function App() {
     isProcessing,
     setIsProcessing,
     extractionResult,
-    setExtractionResult
+    setExtractionResult,
+    isExporting,
+    setIsExporting,
+    toast,
+    setToast,
+    hideToast
   } = useStore();
+
+  const [exportFormats, setExportFormats] = useState({
+    psd: false,
+    svg: false,
+    tiff: false,
+    png: false,
+  });
+  const [tiffColorSpace, setTiffColorSpace] = useState<Format>(Format.TiffCmyk);
 
   useEffect(() => {
     // For Playwright Testing
@@ -115,8 +130,116 @@ function App() {
     }
   };
 
+  const handleExport = async () => {
+    if (!sidecarPort) {
+      alert("Sidecar is not ready yet!");
+      return;
+    }
+
+    try {
+      const selectedFolder = await open({
+        directory: true,
+        multiple: false
+      });
+
+      if (!selectedFolder) return;
+
+      setIsExporting(true);
+      hideToast();
+
+      const formats: Format[] = [];
+      if (exportFormats.psd) formats.push(Format.Psd);
+      if (exportFormats.svg) formats.push(Format.SVG);
+      if (exportFormats.png) formats.push(Format.PNG);
+      if (exportFormats.tiff) formats.push(tiffColorSpace);
+
+      const requestPayload: ExportRequest = {
+        destination_folder: selectedFolder as string,
+        formats: formats
+      };
+
+      const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/export`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (response.ok) {
+        setExtractionResult(null);
+        setExportFormats({ psd: false, svg: false, tiff: false, png: false });
+        setTiffColorSpace(Format.TiffCmyk);
+        setToast({
+          message: 'Export successful!',
+          folderPath: selectedFolder as string,
+          visible: true
+        });
+      } else {
+        console.error("Export failed:", response.statusText);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFormatChange = (format: keyof typeof exportFormats) => {
+    setExportFormats(prev => ({ ...prev, [format]: !prev[format] }));
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e24', color: '#ffffff' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e24', color: '#ffffff', position: 'relative' }}>
+
+      {/* Toast Notification */}
+      {toast.visible && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#4cc9f0',
+          color: '#1e1e24',
+          padding: '12px 20px',
+          borderRadius: '4px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px',
+          zIndex: 1000
+        }}>
+          <div>
+            <strong>{toast.message}</strong>
+            {toast.folderPath && (
+              <div style={{ marginTop: '4px' }}>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (toast.folderPath) openShell(toast.folderPath);
+                  }}
+                  style={{ color: '#005f73', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Open Folder
+                </a>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={hideToast}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#1e1e24',
+              fontSize: '16px',
+              cursor: 'pointer',
+              padding: '0 5px'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Top Toolbar */}
       <div style={{ padding: '10px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -153,6 +276,73 @@ function App() {
               <div style={{ color: '#666', fontSize: '14px' }}>No layers extracted yet.</div>
             )}
           </div>
+
+          {/* Export Controls */}
+          {extractionResult && (
+            <div style={{ marginTop: 'auto', borderTop: '1px solid #333', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0' }}>Export Options</h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={exportFormats.psd} onChange={() => handleFormatChange('psd')} />
+                  PSD
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={exportFormats.svg} onChange={() => handleFormatChange('svg')} />
+                  SVG
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={exportFormats.png} onChange={() => handleFormatChange('png')} />
+                  PNG
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={exportFormats.tiff} onChange={() => handleFormatChange('tiff')} />
+                  TIFF
+                </label>
+
+                {exportFormats.tiff && (
+                  <div style={{ marginLeft: '24px', display: 'flex', gap: '10px', fontSize: '13px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="tiffColorSpace"
+                        value={Format.TiffCmyk}
+                        checked={tiffColorSpace === Format.TiffCmyk}
+                        onChange={() => setTiffColorSpace(Format.TiffCmyk)}
+                      />
+                      CMYK
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="tiffColorSpace"
+                        value={Format.TiffRGB}
+                        checked={tiffColorSpace === Format.TiffRGB}
+                        onChange={() => setTiffColorSpace(Format.TiffRGB)}
+                      />
+                      RGB
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={isExporting || (!exportFormats.psd && !exportFormats.svg && !exportFormats.tiff && !exportFormats.png)}
+                style={{
+                  padding: '10px',
+                  backgroundColor: '#f72585',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: (isExporting || (!exportFormats.psd && !exportFormats.svg && !exportFormats.tiff && !exportFormats.png)) ? 'not-allowed' : 'pointer',
+                  borderRadius: '4px',
+                  opacity: (isExporting || (!exportFormats.psd && !exportFormats.svg && !exportFormats.tiff && !exportFormats.png)) ? 0.6 : 1
+                }}
+              >
+                {isExporting ? 'Packaging Exports...' : 'Export'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Preview Canvas Area */}
