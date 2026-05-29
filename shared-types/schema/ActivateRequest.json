@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ActivateRequest",
+  "type": "object",
+  "properties": {
+    "jwt": {
+      "type": "string",
+      "description": "The Supabase JWT returned upon successful login."
+    },
+    "machine_id": {
+      "type": "string",
+      "description": "The unique hardware identifier of the machine."
+    }
+  },
+  "required": ["jwt", "machine_id"]
+}

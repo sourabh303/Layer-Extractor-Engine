@@ -6,6 +6,9 @@ import { useStore } from './store';
 import type { ExtractionRequest } from './types/ExtractionRequest';
 import { Format } from './types/ExportRequest';
 import type { ExportRequest } from './types/ExportRequest';
+import { Login } from './components/Login';
+import { supabase } from './supabase';
+import { invoke } from '@tauri-apps/api/core';
 
 function App() {
   const {
@@ -21,7 +24,11 @@ function App() {
     setIsExporting,
     toast,
     setToast,
-    hideToast
+    hideToast,
+    isAuthenticated,
+    setIsAuthenticated,
+    machineId,
+    setMachineId
   } = useStore();
 
   const [exportFormats, setExportFormats] = useState({
@@ -51,16 +58,6 @@ function App() {
         if (line.includes('SIDECAR_PORT=')) {
           const port = parseInt(line.split('=')[1].trim());
           setSidecarPort(port);
-
-          // Ping .NET for hardware status (which .NET relays from Python)
-          fetch(`http://127.0.0.1:${port}/api/status`)
-            .then(res => res.json())
-            .then(data => {
-              if (data && data.mode) {
-                setHardwareMode(data.mode);
-              }
-            })
-            .catch(err => console.error("Failed to fetch hardware status:", err));
         }
       });
 
@@ -84,6 +81,66 @@ function App() {
       window.removeEventListener('set-mock-state', handleMockState);
     };
   }, [setSidecarPort, setHardwareMode, setIsProcessing, setExtractionResult]);
+
+  // Boot sequence logic
+  useEffect(() => {
+    async function performBoot() {
+      if (!sidecarPort || isAuthenticated) return;
+
+      try {
+        let hwId = machineId;
+        if (!hwId) {
+          hwId = await invoke<string>('get_machine_id');
+          setMachineId(hwId);
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return; // Need to login
+
+        const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/boot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jwt: session.access_token,
+            machine_id: hwId
+          })
+        });
+
+        if (response.ok) {
+          setIsAuthenticated(true);
+        } else {
+          // Validation failed (e.g. offline cache expired and network down/invalid)
+          await supabase.auth.signOut();
+        }
+      } catch (e) {
+        console.error("Boot sequence failed:", e);
+      }
+    }
+
+    performBoot();
+  }, [sidecarPort, isAuthenticated, machineId, setMachineId, setIsAuthenticated]);
+
+  // Fetch hardware mode after authentication
+  useEffect(() => {
+    if (isAuthenticated && sidecarPort) {
+        // Ping .NET for hardware status (which .NET relays from Python)
+        // Note: The Python process might take a second to boot up after /api/boot or /api/license/activate
+        const fetchStatus = () => {
+          fetch(`http://127.0.0.1:${sidecarPort}/api/status`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.mode) {
+                setHardwareMode(data.mode);
+              }
+            })
+            .catch(() => {
+               // Retry after 1s if Python isn't fully up yet
+               setTimeout(fetchStatus, 1000);
+            });
+        };
+        fetchStatus();
+    }
+  }, [isAuthenticated, sidecarPort, setHardwareMode]);
 
   const handleUpload = async () => {
     if (!sidecarPort) {
@@ -191,6 +248,8 @@ function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e24', color: '#ffffff', position: 'relative' }}>
+
+      {!isAuthenticated && <Login />}
 
       {/* Toast Notification */}
       {toast.visible && (
