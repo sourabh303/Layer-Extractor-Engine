@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Command, open as openShell } from '@tauri-apps/plugin-shell';
+import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Stage, Layer, Rect } from 'react-konva';
 import { useStore } from './store';
@@ -31,6 +32,7 @@ function App() {
     png: false,
   });
   const [tiffColorSpace, setTiffColorSpace] = useState<Format>(Format.TiffCmyk);
+  const [ipcSecret, setIpcSecret] = useState<string>('');
 
   useEffect(() => {
     // For Playwright Testing
@@ -44,7 +46,9 @@ function App() {
     window.addEventListener('set-mock-state', handleMockState);
 
     async function startSidecar() {
-      const command = Command.sidecar('bin/src-core');
+      const secret: string = await invoke('get_ipc_secret');
+      setIpcSecret(secret);
+      const command = Command.sidecar('bin/src-core', ['--ipc-secret', secret]);
 
       command.stdout.on('data', line => {
         console.log(`[Sidecar Output]: ${line}`);
@@ -53,7 +57,9 @@ function App() {
           setSidecarPort(port);
 
           // Ping .NET for hardware status (which .NET relays from Python)
-          fetch(`http://127.0.0.1:${port}/api/status`)
+          fetch(`http://127.0.0.1:${port}/api/status`, {
+            headers: { 'X-IPC-Secret': secret }
+          })
             .then(res => res.json())
             .then(data => {
               if (data && data.mode) {
@@ -111,7 +117,8 @@ function App() {
       const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/extract`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-IPC-Secret': ipcSecret
         },
         body: JSON.stringify(requestPayload)
       });
@@ -161,7 +168,8 @@ function App() {
       const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/export`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-IPC-Secret': ipcSecret
         },
         body: JSON.stringify(requestPayload)
       });

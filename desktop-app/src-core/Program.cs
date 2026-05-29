@@ -28,6 +28,30 @@ var app = builder.Build();
 
 app.UseCors();
 
+string? expectedIpcSecret = null;
+for (int i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--ipc-secret" && i + 1 < args.Length)
+    {
+        expectedIpcSecret = args[i + 1];
+        break;
+    }
+}
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        if (expectedIpcSecret == null || !context.Request.Headers.TryGetValue("X-IPC-Secret", out var providedSecret) || providedSecret != expectedIpcSecret)
+        {
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsync("Unauthorized: Invalid IPC Secret");
+            return;
+        }
+    }
+    await next();
+});
+
 int pythonPort = GetAvailablePort();
 Process? pythonProcess = null;
 
