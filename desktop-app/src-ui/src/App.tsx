@@ -227,6 +227,7 @@ function App() {
           </div>
           <button
             onClick={hideToast}
+            aria-label="Close notification"
             style={{
               background: 'transparent',
               border: 'none',
@@ -340,6 +341,7 @@ function App() {
               <button
                 onClick={handleExport}
                 disabled={isExporting || (!exportFormats.psd && !exportFormats.svg && !exportFormats.tiff && !exportFormats.png)}
+                aria-busy={isExporting}
                 style={{
                   padding: '10px',
                   backgroundColor: '#f72585',
