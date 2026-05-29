@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate:csharp": "quicktype -s schema ExtractionRequest.json -o ../desktop-app/src-core/Models/ExtractionRequest.cs --namespace Models --framework SystemTextJson && quicktype -s schema ExportRequest.json -o ../desktop-app/src-core/Models/ExportRequest.cs --namespace Models --framework SystemTextJson",
-    "generate:python": "quicktype -s schema ExtractionRequest.json -o ../ml-service/models/extraction_request.py --python-version 3.7 --pydantic-base-model && quicktype -s schema ExportRequest.json -o ../ml-service/models/export_request.py --python-version 3.7 --pydantic-base-model",
-    "generate:typescript": "quicktype -s schema ExtractionRequest.json -o ../desktop-app/src-ui/src/types/ExtractionRequest.ts --just-types && quicktype -s schema ExportRequest.json -o ../desktop-app/src-ui/src/types/ExportRequest.ts --just-types"
+    "generate:csharp": "quicktype -s schema schema/ExtractionRequest.json schema/ExportRequest.json schema/ActivateRequest.json schema/BootRequest.json -o ../desktop-app/src-core/Models/GeneratedTypes.cs --namespace Models --framework SystemTextJson",
+    "generate:python": "quicktype -s schema schema/ExtractionRequest.json -o ../ml-service/models/extraction_request.py --python-version 3.7 --pydantic-base-model && quicktype -s schema schema/ExportRequest.json -o ../ml-service/models/export_request.py --python-version 3.7 --pydantic-base-model",
+    "generate:typescript": "quicktype -s schema schema/ExtractionRequest.json -o ../desktop-app/src-ui/src/types/ExtractionRequest.ts --just-types && quicktype -s schema schema/ExportRequest.json -o ../desktop-app/src-ui/src/types/ExportRequest.ts --just-types && quicktype -s schema schema/ActivateRequest.json -o ../desktop-app/src-ui/src/types/ActivateRequest.ts --just-types && quicktype -s schema schema/BootRequest.json -o ../desktop-app/src-ui/src/types/BootRequest.ts --just-types"
   },
   "devDependencies": {
     "quicktype": "^23.2.6"

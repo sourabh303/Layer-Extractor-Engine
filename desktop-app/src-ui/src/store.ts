@@ -21,8 +21,12 @@ interface AppState {
   isProcessing: boolean;
   isExporting: boolean;
   toast: ToastState;
+  isAuthenticated: boolean;
+  machineId: string | null;
   setHardwareMode: (mode: string) => void;
   setSidecarPort: (port: number) => void;
+  setIsAuthenticated: (auth: boolean) => void;
+  setMachineId: (id: string) => void;
   setExtractionResult: (result: ExtractionMetadata | null) => void;
   setIsProcessing: (processing: boolean) => void;
   setIsExporting: (exporting: boolean) => void;
@@ -37,6 +41,8 @@ export const useStore = create<AppState>((set) => ({
   isProcessing: false,
   isExporting: false,
   toast: { message: '', visible: false },
+  isAuthenticated: false,
+  machineId: null,
   setHardwareMode: (mode) => set({ hardwareMode: mode }),
   setSidecarPort: (port) => set({ sidecarPort: port }),
   setExtractionResult: (result) => set({ extractionResult: result }),
@@ -44,4 +50,6 @@ export const useStore = create<AppState>((set) => ({
   setIsExporting: (exporting) => set({ isExporting: exporting }),
   setToast: (toast) => set({ toast }),
   hideToast: () => set((state) => ({ toast: { ...state.toast, visible: false } })),
+  setIsAuthenticated: (auth) => set({ isAuthenticated: auth }),
+  setMachineId: (id) => set({ machineId: id }),
 }));

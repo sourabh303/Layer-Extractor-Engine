@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Models;
 using Microsoft.AspNetCore.Mvc;
+using src_core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<LicenseService>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -42,8 +44,12 @@ app.Lifetime.ApplicationStarted.Register(() =>
         Console.WriteLine($"SIDECAR_PORT={uri.Port}");
         Console.Out.Flush();
     }
+});
 
-    // Start python ML service
+void StartPythonMLService()
+{
+    if (pythonProcess != null && !pythonProcess.HasExited) return;
+
     Console.WriteLine($"Starting Python ML Service on port {pythonPort}...");
     var mlServicePath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "../../ml-service"));
 
@@ -60,6 +66,34 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
     pythonProcess = new Process { StartInfo = startInfo };
     pythonProcess.Start();
+}
+
+app.MapPost("/api/license/activate", async ([FromBody] ActivateRequest req, LicenseService licenseService) =>
+{
+    var isValid = await licenseService.VerifyAndActivateAsync(req.Jwt, req.MachineId);
+    if (isValid)
+    {
+        StartPythonMLService();
+        return Results.Ok(new { success = true });
+    }
+    return Results.Unauthorized();
+});
+
+app.MapPost("/api/boot", async ([FromBody] BootRequest req, LicenseService licenseService) =>
+{
+    var isValid = await licenseService.BootFromCacheAsync(req.MachineId);
+    if (!isValid)
+    {
+        // Try network re-verification
+        isValid = await licenseService.VerifyAndActivateAsync(req.Jwt, req.MachineId);
+    }
+
+    if (isValid)
+    {
+        StartPythonMLService();
+        return Results.Ok(new { success = true });
+    }
+    return Results.Unauthorized();
 });
 
 app.MapGet("/api/status", async (IHttpClientFactory clientFactory) =>
