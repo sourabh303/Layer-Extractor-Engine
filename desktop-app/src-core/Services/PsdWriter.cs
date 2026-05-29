@@ -153,30 +153,45 @@ public static class PsdWriter
             byte[] g = new byte[width * height];
             byte[] b = new byte[width * height];
 
+            // ⚡ Bolt Optimization: Use fast unsafe byte extraction based on known color formats.
+            // Avoids O(W*H) overhead of `layer.Bitmap.GetPixel(x, y)` which is exceptionally slow.
             unsafe
             {
-                byte* pixels = (byte*)layer.Bitmap.GetPixels();
-                int idx = 0;
-                for (int i = 0; i < width * height; i++)
+                int totalPixels = width * height;
+                // Only use the fast unsafe path if we know the row bytes match perfectly (no padding)
+                if ((layer.Bitmap.ColorType == SKColorType.Bgra8888 || layer.Bitmap.ColorType == SKColorType.Rgba8888) &&
+                    layer.Bitmap.RowBytes == width * 4)
                 {
-                    // SkiaSharp is typically BGRA or RGBA. Let's assume standard byte ordering.
-                    // For SKColorType.Rgba8888 or Bgra8888, it depends on architecture.
-                    // Using SKColor handles it transparently but is slower. We'll use GetPixel to be safe.
-                }
-            }
+                    byte* ptr = (byte*)layer.Bitmap.GetPixels().ToPointer();
+                    bool isBgra = layer.Bitmap.ColorType == SKColorType.Bgra8888;
 
-            // Slower but safer channel extraction
-            int idxSafe = 0;
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
+                    for (int i = 0; i < totalPixels; i++)
+                    {
+                        if (isBgra) {
+                            b[i] = ptr[i * 4];
+                            g[i] = ptr[i * 4 + 1];
+                            r[i] = ptr[i * 4 + 2];
+                            a[i] = ptr[i * 4 + 3];
+                        } else {
+                            r[i] = ptr[i * 4];
+                            g[i] = ptr[i * 4 + 1];
+                            b[i] = ptr[i * 4 + 2];
+                            a[i] = ptr[i * 4 + 3];
+                        }
+                    }
+                }
+                else
                 {
-                    var color = layer.Bitmap.GetPixel(x, y);
-                    a[idxSafe] = color.Alpha;
-                    r[idxSafe] = color.Red;
-                    g[idxSafe] = color.Green;
-                    b[idxSafe] = color.Blue;
-                    idxSafe++;
+                    // Fallback for other formats or if there is row padding
+                    ReadOnlySpan<SKColor> pixels = layer.Bitmap.Pixels;
+                    for (int i = 0; i < totalPixels; i++)
+                    {
+                        var color = pixels[i];
+                        a[i] = color.Alpha;
+                        r[i] = color.Red;
+                        g[i] = color.Green;
+                        b[i] = color.Blue;
+                    }
                 }
             }
 
