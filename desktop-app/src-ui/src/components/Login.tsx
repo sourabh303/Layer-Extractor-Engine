@@ -83,29 +83,34 @@ export const Login: React.FC = () => {
           {isLogin ? 'Welcome Back' : 'Start 30-Day Trial'}
         </h2>
 
-        {error && <div style={{ color: '#f72585', fontSize: '14px', textAlign: 'center', padding: '10px', backgroundColor: 'rgba(247, 37, 133, 0.1)', borderRadius: '4px' }}>{error}</div>}
+        {error && <div role="alert" style={{ color: '#f72585', fontSize: '14px', textAlign: 'center', padding: '10px', backgroundColor: 'rgba(247, 37, 133, 0.1)', borderRadius: '4px' }}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input
             type="email"
+            aria-label="Email Address"
             placeholder="Email Address"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px' }}
+            disabled={loading}
+            style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px', opacity: loading ? 0.7 : 1 }}
           />
           <input
             type="password"
+            aria-label="Password"
             placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px' }}
+            disabled={loading}
+            style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px', opacity: loading ? 0.7 : 1 }}
           />
 
           <button
             type="submit"
             disabled={loading || !sidecarPort}
+            aria-busy={loading}
             style={{
               padding: '12px', backgroundColor: '#4361ee', color: '#fff', border: 'none', borderRadius: '4px',
               fontSize: '16px', fontWeight: 'bold', cursor: (loading || !sidecarPort) ? 'not-allowed' : 'pointer',
