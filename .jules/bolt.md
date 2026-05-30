@@ -13,3 +13,7 @@
 ## 2025-05-29 - [Check Stride/RowBytes in unsafe SkiaSharp pixel blocks]
 **Learning:** Assuming that an image buffer's `layer.Bitmap.GetPixels()` perfectly fits `width * 4` per row is dangerous. If there is padding (stride > width * 4), reading continuously as `ptr[i * 4]` will cross row boundaries incorrectly and corrupt the image.
 **Action:** Always check that `layer.Bitmap.RowBytes == width * 4` before attempting a fast continuous 1D-array style unsafe pixel read, or manually step through rows via a `y` loop using `byte* rowPtr = ptr + (y * layer.Bitmap.RowBytes)`.
+
+## 2024-05-24 - [OpenCV Spatial Array Optimization]
+**Learning:** Performing NumPy masking (`cv2.inRange`) and contour extraction (`cv2.findContours`) across large full-resolution image arrays when the active mask covers only a small portion is highly inefficient. The time complexity scales with the image size ($O(W_{img} \times H_{img})$) rather than the feature size.
+**Action:** When executing spatial OpenCV pipeline operations that operate within a mask, first compute the bounding box of the non-zero mask area (`cv2.boundingRect`), extract a localized Region of Interest (ROI), perform the heavy spatial operations on the ROI, and apply a coordinate offset when generating the final polygons to map back to the original image dimensions. This changes the complexity to $O(W_{box} \times H_{box})$.
