@@ -2,3 +2,8 @@
 **Vulnerability:** The .NET orchestrator had `AllowAnyOrigin()` CORS policy and the Tauri frontend had `csp: null`. This allowed any public website to make unauthorized requests to the local desktop orchestrator on `127.0.0.1` and left the frontend vulnerable to XSS and injection.
 **Learning:** In local desktop companion apps, especially those binding to loopback for sidecar communication, wildcard CORS and missing CSPs are critical risks that can expose the local machine's services or file system to malicious sites visited in the browser.
 **Prevention:** Always restrict CORS to the specific `localhost` or `tauri://localhost` origins used by the frontend, and ensure the Tauri frontend defines a strict Content Security Policy limiting connections and sources.
+
+## 2024-05-28 - [Local API Hijacking via Sidecar Port]
+**Vulnerability:** The .NET orchestrator binds to a local port and exposes REST APIs. Even with CORS restrictions to Tauri domains, a malicious process or DNS rebinding attack could potentially send requests directly to the bound localhost port.
+**Learning:** Pure CORS and loopback binding are not sufficient to prevent unauthorized local processes from hijacking sidecar APIs, especially those handling file system access or licenses.
+**Prevention:** Implement a strict IPC Secret Token mechanism where the frontend generates a secure random string on launch, passes it to the sidecar via CLI arguments, and includes it as a header (`X-IPC-Secret`) on all HTTP requests to validate authorization.
