@@ -61,8 +61,10 @@ class GeometryCleanupPipeline:
 
         # ⚡ Bolt Optimization: Crop spatial operations to the bounding box of the foreground
         # This reduces findContours and inRange time from O(W*H) to O(bbox_W * bbox_H)
-        x, y, w_box, h_box = cv2.boundingRect(binary_mask)
-        cropped_quantized_img = quantized_img[y:y+h_box, x:x+w_box]
+        # Note: quantized_img is ALREADY cropped to the bounding box (roi_image size).
+        # Re-evaluating x, y and cropping again causes an out-of-bounds error if x, y > 0.
+        # We simply use the already-cropped image directly.
+        cropped_quantized_img = quantized_img
 
         for color in unique_colors:
             # Skip the black background color
@@ -73,6 +75,7 @@ class GeometryCleanupPipeline:
             color_mask = cv2.inRange(cropped_quantized_img, color, color)
 
             # Find contours for this color using the offset to map back to original coordinates
+            # Note: We ONLY apply the offset in findContours or here, not both!
             contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE, offset=(x, y))
 
             # 2. Geometry Cleanup: approxPolyDP
@@ -80,8 +83,8 @@ class GeometryCleanupPipeline:
             for contour in contours:
                 epsilon = APPROX_POLY_DP_EPSILON_MULTIPLIER * cv2.arcLength(contour, True)
                 approx_polygon = cv2.approxPolyDP(contour, epsilon, True)
-                # Offset polygons back to original image coordinates
-                approx_polygon += [x, y]
+                # The findContours offset argument already shifts the coordinates,
+                # so we do not add [x, y] again to prevent a double-shift bug.
                 flat_polygons.append(approx_polygon)
 
             # 3. Reconstruct by filling the strictly flat polygons
