@@ -15,11 +15,22 @@ class GeometryCleanupPipeline:
         # Ensure mask is binary
         _, binary_mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
 
+        # Extract bounding box to crop spatial processing
+        # ⚡ Bolt Optimization: By processing only the bounding box instead of the full image
+        # we reduce spatial operations (masking, inRange, findContours) from O(W_img*H_img) to O(W_box*H_box)
+        x, y, w_box, h_box = cv2.boundingRect(binary_mask)
+        if w_box == 0 or h_box == 0:
+            h, w = image.shape[:2]
+            return np.zeros((h, w, 4), dtype=np.uint8)
+
+        roi_image = image[y:y+h_box, x:x+w_box]
+        roi_mask = binary_mask[y:y+h_box, x:x+w_box]
+
         # Extract the ROI specified by the mask
         # ⚡ Bolt Optimization: Only extract and process pixels that are strictly in the foreground
         # This reduces K-Means time from O(W*H) to O(N) where N is number of foreground pixels
-        fg_mask = binary_mask > 0
-        pixels = image[fg_mask]
+        fg_mask = roi_mask > 0
+        pixels = roi_image[fg_mask]
 
         # If the mask is empty, return an empty image early
         if len(pixels) == 0:
@@ -37,13 +48,13 @@ class GeometryCleanupPipeline:
 
         centers = np.uint8(centers)
 
-        # Reconstruct full image size with quantized pixels inside the mask
-        quantized_img = np.zeros_like(image)
+        # Reconstruct localized image size with quantized pixels inside the mask
+        quantized_img = np.zeros_like(roi_image)
         quantized_img[fg_mask] = centers[labels.flatten()]
 
-        # Create an empty RGBA output image (transparent background)
-        h, w = image.shape[:2]
-        flat_output = np.zeros((h, w, 4), dtype=np.uint8)
+        # Create an empty RGBA output image (transparent background) with ORIGINAL image dimensions
+        h_orig, w_orig = image.shape[:2]
+        flat_output = np.zeros((h_orig, w_orig, 4), dtype=np.uint8)
 
         # Process each quantized color cluster independently to generate flat polygons
         unique_colors = np.unique(centers, axis=0)
@@ -64,6 +75,8 @@ class GeometryCleanupPipeline:
             for contour in contours:
                 epsilon = APPROX_POLY_DP_EPSILON_MULTIPLIER * cv2.arcLength(contour, True)
                 approx_polygon = cv2.approxPolyDP(contour, epsilon, True)
+                # Offset polygons back to original image coordinates
+                approx_polygon += [x, y]
                 flat_polygons.append(approx_polygon)
 
             # 3. Reconstruct by filling the strictly flat polygons
