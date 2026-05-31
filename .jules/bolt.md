@@ -13,3 +13,7 @@
 ## 2025-05-29 - [Check Stride/RowBytes in unsafe SkiaSharp pixel blocks]
 **Learning:** Assuming that an image buffer's `layer.Bitmap.GetPixels()` perfectly fits `width * 4` per row is dangerous. If there is padding (stride > width * 4), reading continuously as `ptr[i * 4]` will cross row boundaries incorrectly and corrupt the image.
 **Action:** Always check that `layer.Bitmap.RowBytes == width * 4` before attempting a fast continuous 1D-array style unsafe pixel read, or manually step through rows via a `y` loop using `byte* rowPtr = ptr + (y * layer.Bitmap.RowBytes)`.
+
+## 2025-05-31 - [Optimize OpenCV Spatial Operations via Bounding Box Cropping]
+**Learning:** Running spatial operations like `cv2.inRange` and `cv2.findContours` on a full high-resolution image array where the actual motif occupies only a small fraction wastes significant computation.
+**Action:** When performing OpenCV spatial processing on masked areas, extract the bounding box using `cv2.boundingRect(mask)`, crop the image to those dimensions before running the spatial operations, and pass the `offset=(x, y)` parameter to `cv2.findContours` to map coordinates back to the original image space. This changes processing time from O(W*H) to O(bbox_W*bbox_H).
