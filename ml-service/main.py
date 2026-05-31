@@ -62,12 +62,12 @@ async def run_extraction(request: ExtractionRequest):
     try:
         # Load the source image using OpenCV
         # Ensure it's read in BGR format
-        original_image = cv2.imread(source_path)
+        original_image = await asyncio.to_thread(cv2.imread, source_path)
         if original_image is None:
             raise ValueError(f"Could not decode image at {source_path}")
 
         # 1. Detection
-        bboxes = inference_pipeline.run_rt_detr_detection(source_path)
+        bboxes = await asyncio.to_thread(inference_pipeline.run_rt_detr_detection, source_path)
         output_paths = []
 
         # Process each detected motif
