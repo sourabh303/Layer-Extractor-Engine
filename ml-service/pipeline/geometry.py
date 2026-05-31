@@ -48,31 +48,33 @@ class GeometryCleanupPipeline:
 
         centers = np.uint8(centers)
 
-        # Reconstruct localized image size with quantized pixels inside the mask
-        quantized_img = np.zeros_like(roi_image)
-        quantized_img[fg_mask] = centers[labels.flatten()]
+        # Reconstruct localized image size with quantized labels inside the mask
+        # ⚡ Bolt Optimization: Map K-Means labels directly to an integer array instead of reconstructing
+        # the RGB image and using cv2.inRange. This allows fast O(N) boolean indexing per cluster,
+        # avoiding redundant O(W*H) pixel comparisons across all channels for every color.
+        label_img = np.zeros(roi_image.shape[:2], dtype=np.int32) - 1 # -1 is background
+        label_img[fg_mask] = labels.flatten()
 
         # Create an empty RGBA output image (transparent background) with ORIGINAL image dimensions
         h_orig, w_orig = image.shape[:2]
         flat_output = np.zeros((h_orig, w_orig, 4), dtype=np.uint8)
 
         # Process each quantized color cluster independently to generate flat polygons
-        unique_colors = np.unique(centers, axis=0)
+        unique_labels = np.unique(labels)
 
-        # ⚡ Bolt Optimization: Crop spatial operations to the bounding box of the foreground
-        # This reduces findContours and inRange time from O(W*H) to O(bbox_W * bbox_H)
-        # Note: quantized_img is ALREADY cropped to the bounding box (roi_image size).
-        # Re-evaluating x, y and cropping again causes an out-of-bounds error if x, y > 0.
+        # Note: label_img is ALREADY cropped to the bounding box (roi_image size).
         # We simply use the already-cropped image directly.
-        cropped_quantized_img = quantized_img
 
-        for color in unique_colors:
+        for i in unique_labels:
+            color = centers[i]
             # Skip the black background color
             if np.all(color == [0, 0, 0]):
                 continue
 
-            # Create a mask for this specific color on the cropped image
-            color_mask = cv2.inRange(cropped_quantized_img, color, color)
+            # Create a mask for this specific label using fast boolean indexing
+            # We use np.ascontiguousarray to ensure memory layout compatibility with findContours
+            color_mask = (label_img == i).astype(np.uint8) * 255
+            color_mask = np.ascontiguousarray(color_mask)
 
             # Find contours for this color using the offset to map back to original coordinates
             # Note: We ONLY apply the offset in findContours or here, not both!
