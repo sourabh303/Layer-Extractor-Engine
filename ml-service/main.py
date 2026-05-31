@@ -68,6 +68,9 @@ async def run_extraction(request: ExtractionRequest):
         bboxes = inference_pipeline.run_rt_detr_detection(source_path)
         output_paths = []
 
+        # Pre-process image for SAM2 once to save time
+        preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
+
         # Process each detected motif
         for i, bbox in enumerate(bboxes):
             print(f"Processing bounding box {i+1}/{len(bboxes)}...")
@@ -77,15 +80,15 @@ async def run_extraction(request: ExtractionRequest):
             try:
                 # 45 second timeout constraint
                 mask = await asyncio.wait_for(
-                    inference_pipeline.run_sam2_segmentation(source_path, bbox),
+                    inference_pipeline.run_sam2_segmentation(preprocessed_tensor, original_shape, bbox),
                     timeout=45.0
                 )
             except asyncio.TimeoutError:
                 print("SAM2 segmentation timed out! Falling back to RT-DETR mask.")
-                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+                mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
             except Exception as e:
                 print(f"SAM2 failed: {e}. Falling back to RT-DETR mask.")
-                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+                mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
 
             # 3. Geometry Cleanup (CRITICAL)
             # Run CPU-bound processing in a separate thread to unblock the async event loop
