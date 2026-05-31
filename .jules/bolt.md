@@ -22,3 +22,8 @@
 **Title:** Optimizing OpenCV Spatial Cropping Avoidance of Double Shift
 **Learning:** When passing `offset=(x, y)` to `cv2.findContours` on a sub-cropped array (obtained via `cv2.boundingRect`), the resulting coordinates are already shifted to the global image space. Manually adding `[x, y]` to the contours later causes a double-shift bug. Furthermore, do not re-crop arrays that are already scaled to the ROI.
 **Action:** Fixed `ml-service/pipeline/geometry.py` to prevent slicing a previously-cropped image and removed the double-shift coordinate logic in the contour extraction pipeline.
+
+## 2026-05-31
+**Title:** Optimizing OpenCV inRange on RGB image arrays
+**Learning:** Using `cv2.inRange` directly on a synthesized RGB image for masks is significantly slower than creating a 2D integer array of component labels (`label_img`) mapping cluster values to indices. Vectorized boolean indexing on the label image directly using `np.where(label_img == i, 255, 0).astype(np.uint8)` provides roughly ~50% faster masking compared to the multi-channel spatial lookup. Using `np.where` instead of boolean multiplication guarantees type safety for OpenCV regardless of the `NumPy` version.
+**Action:** Use 2D label index maps with `np.where(label_img == i, 255, 0).astype(np.uint8)` instead of rebuilding and searching colored multi-channel images for geometric masking optimizations. Do not use `.unique` on K-Means centroids, just iterate through them directly.
