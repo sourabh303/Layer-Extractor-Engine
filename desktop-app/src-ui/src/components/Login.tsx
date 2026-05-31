@@ -10,7 +10,7 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { sidecarPort, setMachineId, setIsAuthenticated, machineId } = useStore();
+  const { sidecarPort, ipcSecret, setIsAuthenticated, machineId, setMachineId } = useStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +46,10 @@ export const Login: React.FC = () => {
 
       const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/license/activate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-IPC-Secret': ipcSecret || ''
+        },
         body: JSON.stringify({
           jwt: session.access_token,
           machine_id: hwId
