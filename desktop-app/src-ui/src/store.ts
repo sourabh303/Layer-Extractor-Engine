@@ -17,6 +17,7 @@ export interface ToastState {
 interface AppState {
   hardwareMode: string;
   sidecarPort: number | null;
+  ipcSecret: string | null;
   extractionResult: ExtractionMetadata | null;
   isProcessing: boolean;
   isExporting: boolean;
@@ -24,6 +25,7 @@ interface AppState {
   isAuthenticated: boolean;
   machineId: string | null;
   setHardwareMode: (mode: string) => void;
+  setIpcSecret: (secret: string) => void;
   setSidecarPort: (port: number) => void;
   setIsAuthenticated: (auth: boolean) => void;
   setMachineId: (id: string) => void;
@@ -37,6 +39,7 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
   hardwareMode: 'UNKNOWN',
   sidecarPort: null,
+  ipcSecret: null,
   extractionResult: null,
   isProcessing: false,
   isExporting: false,
@@ -45,6 +48,7 @@ export const useStore = create<AppState>((set) => ({
   machineId: null,
   setHardwareMode: (mode) => set({ hardwareMode: mode }),
   setSidecarPort: (port) => set({ sidecarPort: port }),
+  setIpcSecret: (secret) => set({ ipcSecret: secret }),
   setExtractionResult: (result) => set({ extractionResult: result }),
   setIsProcessing: (processing) => set({ isProcessing: processing }),
   setIsExporting: (exporting) => set({ isExporting: exporting }),

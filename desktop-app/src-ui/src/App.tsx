@@ -14,6 +14,8 @@ function App() {
   const {
     sidecarPort,
     setSidecarPort,
+    ipcSecret,
+    setIpcSecret,
     hardwareMode,
     setHardwareMode,
     isProcessing,
@@ -51,7 +53,10 @@ function App() {
     window.addEventListener('set-mock-state', handleMockState);
 
     async function startSidecar() {
-      const command = Command.sidecar('bin/src-core');
+      const secret = await invoke<string>('get_ipc_secret');
+      setIpcSecret(secret);
+
+      const command = Command.sidecar('bin/src-core', ['--ipc-secret', secret]);
 
       command.stdout.on('data', line => {
         console.log(`[Sidecar Output]: ${line}`);
@@ -80,7 +85,7 @@ function App() {
     return () => {
       window.removeEventListener('set-mock-state', handleMockState);
     };
-  }, [setSidecarPort, setHardwareMode, setIsProcessing, setExtractionResult]);
+  }, [setSidecarPort, setHardwareMode, setIsProcessing, setExtractionResult, setIpcSecret]);
 
   // Boot sequence logic
   useEffect(() => {
@@ -99,7 +104,10 @@ function App() {
 
         const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/boot`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-IPC-Secret': ipcSecret || ''
+          },
           body: JSON.stringify({
             jwt: session.access_token,
             machine_id: hwId
@@ -118,7 +126,7 @@ function App() {
     }
 
     performBoot();
-  }, [sidecarPort, isAuthenticated, machineId, setMachineId, setIsAuthenticated]);
+  }, [sidecarPort, isAuthenticated, machineId, setMachineId, setIsAuthenticated, ipcSecret]);
 
   // Fetch hardware mode after authentication
   useEffect(() => {
@@ -126,7 +134,11 @@ function App() {
         // Ping .NET for hardware status (which .NET relays from Python)
         // Note: The Python process might take a second to boot up after /api/boot or /api/license/activate
         const fetchStatus = () => {
-          fetch(`http://127.0.0.1:${sidecarPort}/api/status`)
+          fetch(`http://127.0.0.1:${sidecarPort}/api/status`, {
+            headers: {
+              'X-IPC-Secret': ipcSecret || ''
+            }
+          })
             .then(res => res.json())
             .then(data => {
               if (data && data.mode) {
@@ -140,7 +152,7 @@ function App() {
         };
         fetchStatus();
     }
-  }, [isAuthenticated, sidecarPort, setHardwareMode]);
+  }, [isAuthenticated, sidecarPort, setHardwareMode, ipcSecret]);
 
   const handleUpload = async () => {
     if (!sidecarPort) {
@@ -168,7 +180,8 @@ function App() {
       const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/extract`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-IPC-Secret': ipcSecret || ''
         },
         body: JSON.stringify(requestPayload)
       });
@@ -218,7 +231,8 @@ function App() {
       const response = await fetch(`http://127.0.0.1:${sidecarPort}/api/export`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-IPC-Secret': ipcSecret || ''
         },
         body: JSON.stringify(requestPayload)
       });
@@ -420,7 +434,17 @@ function App() {
         {/* Preview Canvas Area */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#2b2b36' }}>
           {!extractionResult ? (
-            <div style={{ color: '#666' }}>Upload an image to start extraction.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#666', gap: '15px' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ margin: '0 0 5px 0', fontSize: '16px', color: '#ccc' }}>No Image Uploaded</p>
+                <p style={{ margin: 0, fontSize: '14px' }}>Click "Upload Image" to start extraction.</p>
+              </div>
+            </div>
           ) : (
              <Stage width={600} height={400}>
               <Layer>

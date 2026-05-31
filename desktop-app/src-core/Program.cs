@@ -9,6 +9,17 @@ using src_core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Parse --ipc-secret from command line arguments
+var ipcSecret = "";
+for (int i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--ipc-secret" && i + 1 < args.Length)
+    {
+        ipcSecret = args[i + 1];
+        break;
+    }
+}
+
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<LicenseService>();
 builder.Services.AddCors(options =>
@@ -29,6 +40,29 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 var app = builder.Build();
 
 app.UseCors();
+
+// Add IPC Secret Middleware
+app.Use(async (context, next) =>
+{
+    // Skip OPTIONS requests as they are CORS preflight and don't carry custom headers
+    if (context.Request.Method == "OPTIONS")
+    {
+        await next(context);
+        return;
+    }
+
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        if (!context.Request.Headers.TryGetValue("X-IPC-Secret", out var providedSecret) ||
+            providedSecret != ipcSecret)
+        {
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsync("Unauthorized: Invalid IPC Secret");
+            return;
+        }
+    }
+    await next(context);
+});
 
 int pythonPort = GetAvailablePort();
 Process? pythonProcess = null;
