@@ -32,20 +32,20 @@ export default function AuthForm() {
   };
 
   return (
-    <div style={{ maxWidth: 420, margin: '0 auto', padding: '32px', background: '#f7f7f7', borderRadius: 16 }}>
-      <h1 style={{ marginBottom: 16 }}>{isLogin ? 'Sign in' : 'Create account'}</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-        <label style={{ display: 'grid', gap: 6 }}>
+    <div className="max-w-[420px] mx-auto p-8 bg-gray-50 rounded-2xl shadow-sm border border-gray-100">
+      <h1 className="mb-4 text-2xl font-semibold tracking-tight text-gray-900">{isLogin ? 'Sign in' : 'Create account'}</h1>
+      <form onSubmit={handleSubmit} className="grid gap-3">
+        <label className="grid gap-1.5 text-sm font-medium text-gray-700">
           Email
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
-            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc' }}
+            className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
           />
         </label>
-        <label style={{ display: 'grid', gap: 6 }}>
+        <label className="grid gap-1.5 text-sm font-medium text-gray-700">
           Password
           <input
             type="password"
@@ -53,21 +53,21 @@ export default function AuthForm() {
             onChange={(event) => setPassword(event.target.value)}
             required
             minLength={6}
-            style={{ padding: 12, borderRadius: 8, border: '1px solid #ccc' }}
+            className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
           />
         </label>
-        <button type="submit" disabled={loading} style={{ padding: 12, borderRadius: 8, border: 'none', background: '#0b69ff', color: '#fff', fontWeight: 'bold' }}>
+        <button type="submit" disabled={loading} className="p-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {loading ? 'Working…' : isLogin ? 'Sign in' : 'Create account'}
         </button>
       </form>
-      {message ? <p style={{ marginTop: 16, color: '#333' }}>{message}</p> : null}
+      {message ? <p role="alert" className="mt-4 text-sm text-gray-800 bg-gray-100 p-3 rounded-md border border-gray-200">{message}</p> : null}
       <button
         type="button"
         onClick={() => {
           setIsLogin(!isLogin);
           setMessage('');
         }}
-        style={{ marginTop: 20, background: 'none', border: 'none', color: '#0b69ff', cursor: 'pointer' }}
+        className="mt-5 text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:underline font-medium w-full text-center transition-colors"
       >
         {isLogin ? 'Need an account? Create one' : 'Already have an account? Sign in'}
       </button>
