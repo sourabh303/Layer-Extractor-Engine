@@ -67,7 +67,7 @@ async def run_extraction(request: ExtractionRequest):
             raise ValueError(f"Could not decode image at {source_path}")
 
         # 1. Detection
-        bboxes = inference_pipeline.run_rt_detr_detection(source_path)
+        bboxes = inference_pipeline.run_rt_detr_detection(original_image)
         output_paths = []
 
         # Process each detected motif
@@ -79,15 +79,15 @@ async def run_extraction(request: ExtractionRequest):
             try:
                 # 45 second timeout constraint
                 mask = await asyncio.wait_for(
-                    inference_pipeline.run_sam2_segmentation(source_path, bbox),
+                    inference_pipeline.run_sam2_segmentation(original_image, bbox),
                     timeout=45.0
                 )
             except asyncio.TimeoutError:
                 print("SAM2 segmentation timed out! Falling back to RT-DETR mask.")
-                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+                mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
             except Exception as e:
                 print(f"SAM2 failed: {e}. Falling back to RT-DETR mask.")
-                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+                mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
 
             # 3. Geometry Cleanup (CRITICAL)
             flat_layer_rgba = geometry_pipeline.process_layer(original_image, mask)

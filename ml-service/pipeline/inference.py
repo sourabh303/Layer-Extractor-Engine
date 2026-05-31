@@ -1,6 +1,7 @@
 import os
 import asyncio
 import numpy as np
+
 from PIL import Image
 
 # Determines if we should bypass loading actual weights for the local sandbox
@@ -50,31 +51,29 @@ class AIInferencePipeline:
         else:
             print(f"WARNING: SAM2 model not found at {sam2_path}. Inference will fail if not mocked.")
 
-    def run_rt_detr_detection(self, image_path: str) -> list[tuple]:
+    def run_rt_detr_detection(self, original_img: np.ndarray) -> list[tuple]:
         """
         Runs RT-DETR to detect motifs and returns a list of bounding boxes.
         Returns: [(x1, y1, x2, y2), ...]
         """
         if MOCK_INFERENCE:
             # Mock 2 bounding boxes for testing
-            img = Image.open(image_path)
-            w, h = img.size
+            h, w = original_img.shape[:2]
             return [
                 (int(w*0.1), int(h*0.1), int(w*0.4), int(h*0.4)),
                 (int(w*0.5), int(h*0.5), int(w*0.9), int(h*0.9))
             ]
 
         import cv2
-        import numpy as np
+
 
         if not self.rt_detr_session:
             raise RuntimeError("RT-DETR session not loaded.")
 
         # 1. Preprocess Image
         # Assuming typical RT-DETR preprocessing: resize to 640x640, normalize, CHW format
-        original_img = cv2.imread(image_path)
         if original_img is None:
-            raise ValueError("Could not read image for RT-DETR.")
+            raise ValueError("Provided image array is None.")
 
         h_orig, w_orig = original_img.shape[:2]
         img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
@@ -128,7 +127,7 @@ class AIInferencePipeline:
 
         return bboxes
 
-    async def run_sam2_segmentation(self, image_path: str, bbox: tuple) -> np.ndarray:
+    async def run_sam2_segmentation(self, original_img: np.ndarray, bbox: tuple) -> np.ndarray:
         """
         Runs SAM2 inference asynchronously to generate a high-quality segmentation mask.
         Returns a binary numpy array (mask).
@@ -138,8 +137,7 @@ class AIInferencePipeline:
             await asyncio.sleep(1.0)
 
             # Generate a mock circular mask inside the bbox
-            img = Image.open(image_path)
-            w, h = img.size
+            h, w = original_img.shape[:2]
             mask = np.zeros((h, w), dtype=np.uint8)
             x1, y1, x2, y2 = bbox
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
@@ -153,7 +151,7 @@ class AIInferencePipeline:
 
         import torch
         import cv2
-        import numpy as np
+
 
         if not self.sam2_model:
             raise RuntimeError("SAM2 model not loaded.")
@@ -162,9 +160,8 @@ class AIInferencePipeline:
         loop = asyncio.get_running_loop()
 
         def _sync_sam2_inference():
-            original_img = cv2.imread(image_path)
             if original_img is None:
-                raise ValueError("Could not read image for SAM2.")
+                raise ValueError("Provided image array is None.")
 
             img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
             h_orig, w_orig = img.shape[:2]
@@ -210,22 +207,21 @@ class AIInferencePipeline:
         mask = await loop.run_in_executor(None, _sync_sam2_inference)
         return mask
 
-    def run_rt_detr_fallback_mask(self, image_path: str, bbox: tuple) -> np.ndarray:
+    def run_rt_detr_fallback_mask(self, original_img: np.ndarray, bbox: tuple) -> np.ndarray:
         """
         Fallback mask generation using RT-DETR mask head if SAM2 fails or times out.
         """
         print(f"Running RT-DETR fallback for bbox: {bbox}")
         if MOCK_INFERENCE:
             # Generate a simple rectangular mock mask
-            img = Image.open(image_path)
-            w, h = img.size
+            h, w = original_img.shape[:2]
             mask = np.zeros((h, w), dtype=np.uint8)
             x1, y1, x2, y2 = bbox
             mask[y1:y2, x1:x2] = 255
             return mask
 
         import cv2
-        import numpy as np
+
 
         # If we had a true RT-DETR panoptic/instance segmentation model loaded,
         # we would extract the mask here. Since RT-DETR is primarily a detector,
@@ -233,9 +229,8 @@ class AIInferencePipeline:
         # or grab a segmentation head output if the model supports it.
 
         # We will fallback to a GrabCut algorithm bounded by the RT-DETR box as a realistic offline fallback
-        original_img = cv2.imread(image_path)
         if original_img is None:
-            raise ValueError("Could not read image for RT-DETR fallback.")
+            raise ValueError("Provided image array is None.")
 
         h_orig, w_orig = original_img.shape[:2]
         mask = np.zeros((h_orig, w_orig), np.uint8)
