@@ -60,7 +60,7 @@ async def run_extraction(request: ExtractionRequest):
     try:
         # Load the source image using OpenCV
         # Ensure it's read in BGR format
-        original_image = cv2.imread(source_path)
+        original_image = await asyncio.to_thread(cv2.imread, source_path)
         if original_image is None:
             raise ValueError(f"Could not decode image at {source_path}")
 
