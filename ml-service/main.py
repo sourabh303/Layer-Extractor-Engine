@@ -88,7 +88,8 @@ async def run_extraction(request: ExtractionRequest):
                 mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
 
             # 3. Geometry Cleanup (CRITICAL)
-            flat_layer_rgba = geometry_pipeline.process_layer(original_image, mask)
+            # Run CPU-bound processing in a separate thread to unblock the async event loop
+            flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
             # Save strictly flat geometry PNG output
             output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
