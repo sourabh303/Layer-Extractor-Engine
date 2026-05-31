@@ -22,7 +22,8 @@
 **Title:** Optimizing OpenCV Spatial Cropping Avoidance of Double Shift
 **Learning:** When passing `offset=(x, y)` to `cv2.findContours` on a sub-cropped array (obtained via `cv2.boundingRect`), the resulting coordinates are already shifted to the global image space. Manually adding `[x, y]` to the contours later causes a double-shift bug. Furthermore, do not re-crop arrays that are already scaled to the ROI.
 **Action:** Fixed `ml-service/pipeline/geometry.py` to prevent slicing a previously-cropped image and removed the double-shift coordinate logic in the contour extraction pipeline.
+
 ## 2026-05-31
-* **Title:** Async Concurrency for Blocking Operations
-* **Learning:** In the Python ML service, CPU-bound tasks (like intensive image processing/inference) and synchronous file I/O operations (like `cv2.imread`) must be wrapped in `asyncio.to_thread()` when called from within FastAPI async endpoints to prevent blocking the asynchronous event loop.
-* **Action:** `cv2.imread` and `inference_pipeline.run_rt_detr_detection` were wrapped in `asyncio.to_thread()` in `ml-service/main.py` which improved endpoint concurrency drastically.
+**Title:** Fast Color Masks using Vectorized Label Indexing
+**Learning:** Generating multiple color masks sequentially using `cv2.inRange` on an RGB array is highly inefficient, as it performs redundant comparisons across three channels for every pixel, multiple times.
+**Action:** When extracting quantized color masks after K-Means, map the cluster labels directly to a 2D integer array (e.g., `label_img[fg_mask] = labels.flatten()`). Extract individual masks using fast boolean indexing `(label_img == cluster_index)`, which is significantly faster than RGB color matching.
