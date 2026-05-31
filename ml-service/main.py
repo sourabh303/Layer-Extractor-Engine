@@ -3,8 +3,6 @@ import argparse
 import asyncio
 import uuid
 import cv2
-import numpy as np
-from PIL import Image
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -70,6 +68,9 @@ async def run_extraction(request: ExtractionRequest):
         bboxes = inference_pipeline.run_rt_detr_detection(original_image)
         output_paths = []
 
+        # Pre-process image for SAM2 once to save time
+        preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
+
         # Process each detected motif
         for i, bbox in enumerate(bboxes):
             print(f"Processing bounding box {i+1}/{len(bboxes)}...")
@@ -79,7 +80,7 @@ async def run_extraction(request: ExtractionRequest):
             try:
                 # 45 second timeout constraint
                 mask = await asyncio.wait_for(
-                    inference_pipeline.run_sam2_segmentation(original_image, bbox),
+                    inference_pipeline.run_sam2_segmentation(preprocessed_tensor, original_shape, bbox),
                     timeout=45.0
                 )
             except asyncio.TimeoutError:
@@ -90,7 +91,8 @@ async def run_extraction(request: ExtractionRequest):
                 mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
 
             # 3. Geometry Cleanup (CRITICAL)
-            flat_layer_rgba = geometry_pipeline.process_layer(original_image, mask)
+            # Run CPU-bound processing in a separate thread to unblock the async event loop
+            flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
             # Save strictly flat geometry PNG output
             output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"

@@ -127,7 +127,33 @@ class AIInferencePipeline:
 
         return bboxes
 
-    async def run_sam2_segmentation(self, original_img: np.ndarray, bbox: tuple) -> np.ndarray:
+    def preprocess_image_for_sam2(self, original_img: np.ndarray) -> tuple:
+        """
+        Preprocesses the original image once for SAM2 inference.
+        Returns a tuple of (preprocessed_tensor, original_shape).
+        """
+        if MOCK_INFERENCE:
+            # Return dummy tensor and original shape for mock
+            h_orig, w_orig = original_img.shape[:2]
+            return None, (h_orig, w_orig)
+
+        import torch
+        import cv2
+
+        if not self.sam2_model:
+            raise RuntimeError("SAM2 model not loaded.")
+
+        img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
+        h_orig, w_orig = img.shape[:2]
+
+        device = next(self.sam2_model.parameters()).device
+
+        input_image = cv2.resize(img, (1024, 1024))
+        input_tensor = torch.as_tensor(input_image, device=device).permute(2, 0, 1).unsqueeze(0).float()
+
+        return input_tensor, (h_orig, w_orig)
+
+    async def run_sam2_segmentation(self, preprocessed_tensor, original_shape: tuple, bbox: tuple) -> np.ndarray:
         """
         Runs SAM2 inference asynchronously to generate a high-quality segmentation mask.
         Returns a binary numpy array (mask).
@@ -137,7 +163,7 @@ class AIInferencePipeline:
             await asyncio.sleep(1.0)
 
             # Generate a mock circular mask inside the bbox
-            h, w = original_img.shape[:2]
+            h, w = original_shape
             mask = np.zeros((h, w), dtype=np.uint8)
             x1, y1, x2, y2 = bbox
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
@@ -160,24 +186,8 @@ class AIInferencePipeline:
         loop = asyncio.get_running_loop()
 
         def _sync_sam2_inference():
-            if original_img is None:
-                raise ValueError("Provided image array is None.")
-
-            img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
-            h_orig, w_orig = img.shape[:2]
-
-            # Assuming typical SAM predictor pattern wrapped in our loaded model
-            # 1. Set Image (Embeddings calculation)
-            # Depending on SAM2 API, it might expect a tensor or numpy array
-
-            # Mocking the typical torch vision preprocessing for the raw model:
-            # Real SAM uses a complex predictor class, we'll emulate the tensor forward pass
+            h_orig, w_orig = original_shape
             device = next(self.sam2_model.parameters()).device
-
-            # Resize image to SAM expected input size (e.g., 1024x1024)
-            # In a real implementation this uses the SAM ResizeLongestSide transform
-            input_image = cv2.resize(img, (1024, 1024))
-            input_tensor = torch.as_tensor(input_image, device=device).permute(2, 0, 1).unsqueeze(0).float()
 
             # Normalize bounding box for the 1024x1024 scale
             x1, y1, x2, y2 = bbox
@@ -189,7 +199,7 @@ class AIInferencePipeline:
                 # Forward pass: getting image embeddings and decoding masks
                 # (Actual SAM2 API uses build_sam2_predictor and predictor.set_image(), predictor.predict())
                 # Here we pass the tensor and box directly to the loaded model representation
-                masks, scores, _ = self.sam2_model(input_tensor, boxes=box_1024)
+                masks, scores, _ = self.sam2_model(preprocessed_tensor, boxes=box_1024)
 
             # Select the mask with the highest score
             best_mask_idx = torch.argmax(scores).item()
@@ -214,8 +224,8 @@ class AIInferencePipeline:
         print(f"Running RT-DETR fallback for bbox: {bbox}")
         if MOCK_INFERENCE:
             # Generate a simple rectangular mock mask
-            h, w = original_img.shape[:2]
-            mask = np.zeros((h, w), dtype=np.uint8)
+            h_orig, w_orig = original_img.shape[:2]
+            mask = np.zeros((h_orig, w_orig), dtype=np.uint8)
             x1, y1, x2, y2 = bbox
             mask[y1:y2, x1:x2] = 255
             return mask
@@ -229,9 +239,6 @@ class AIInferencePipeline:
         # or grab a segmentation head output if the model supports it.
 
         # We will fallback to a GrabCut algorithm bounded by the RT-DETR box as a realistic offline fallback
-        if original_img is None:
-            raise ValueError("Provided image array is None.")
-
         h_orig, w_orig = original_img.shape[:2]
         mask = np.zeros((h_orig, w_orig), np.uint8)
 
