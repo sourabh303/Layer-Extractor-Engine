@@ -4,7 +4,6 @@ import asyncio
 import uuid
 import cv2
 import numpy as np
-from PIL import Image
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
