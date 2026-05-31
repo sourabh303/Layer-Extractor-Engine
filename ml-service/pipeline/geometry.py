@@ -59,16 +59,21 @@ class GeometryCleanupPipeline:
         # Process each quantized color cluster independently to generate flat polygons
         unique_colors = np.unique(centers, axis=0)
 
+        # ⚡ Bolt Optimization: Crop spatial operations to the bounding box of the foreground
+        # This reduces findContours and inRange time from O(W*H) to O(bbox_W * bbox_H)
+        x, y, w_box, h_box = cv2.boundingRect(binary_mask)
+        cropped_quantized_img = quantized_img[y:y+h_box, x:x+w_box]
+
         for color in unique_colors:
             # Skip the black background color
             if np.all(color == [0, 0, 0]):
                 continue
 
-            # Create a mask for this specific color
-            color_mask = cv2.inRange(quantized_img, color, color)
+            # Create a mask for this specific color on the cropped image
+            color_mask = cv2.inRange(cropped_quantized_img, color, color)
 
-            # Find contours for this color
-            contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Find contours for this color using the offset to map back to original coordinates
+            contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE, offset=(x, y))
 
             # 2. Geometry Cleanup: approxPolyDP
             flat_polygons = []
