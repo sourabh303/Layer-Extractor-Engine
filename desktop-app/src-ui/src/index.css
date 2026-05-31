@@ -109,3 +109,10 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+
+/* Global focus-visible for accessibility */
+*:focus-visible {
+  outline: 2px solid #4cc9f0;
+  outline-offset: 2px;
+}
