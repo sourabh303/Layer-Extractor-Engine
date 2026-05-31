@@ -24,6 +24,6 @@
 **Action:** Fixed `ml-service/pipeline/geometry.py` to prevent slicing a previously-cropped image and removed the double-shift coordinate logic in the contour extraction pipeline.
 
 ## 2026-05-31
-**Title:** Optimizing OpenCV inRange on RGB image arrays
-**Learning:** Using `cv2.inRange` directly on a synthesized RGB image for masks is significantly slower than creating a 2D integer array of component labels (`label_img`) mapping cluster values to indices. Vectorized boolean indexing on the label image directly using `np.where(label_img == i, 255, 0).astype(np.uint8)` provides roughly ~50% faster masking compared to the multi-channel spatial lookup. Using `np.where` instead of boolean multiplication guarantees type safety for OpenCV regardless of the `NumPy` version.
-**Action:** Use 2D label index maps with `np.where(label_img == i, 255, 0).astype(np.uint8)` instead of rebuilding and searching colored multi-channel images for geometric masking optimizations. Do not use `.unique` on K-Means centroids, just iterate through them directly.
+**Title:** Fast Color Masks using Vectorized Label Indexing
+**Learning:** Generating multiple color masks sequentially using `cv2.inRange` on an RGB array is highly inefficient, as it performs redundant comparisons across three channels for every pixel, multiple times.
+**Action:** When extracting quantized color masks after K-Means, map the cluster labels directly to a 2D integer array (e.g., `label_img[fg_mask] = labels.flatten()`). Extract individual masks using fast boolean indexing `(label_img == cluster_index)`, which is significantly faster than RGB color matching.

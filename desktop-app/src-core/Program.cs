@@ -26,6 +26,8 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
+        // SECURITY: Do not use AllowAnyOrigin(). Restrict origins to prevent Local API Hijacking
+        // and cross-origin attacks from malicious websites making requests to the local sidecar.
         policy.WithOrigins("http://localhost:5173", "tauri://localhost", "https://tauri.localhost", "http://tauri.localhost")
               .AllowAnyHeader()
               .AllowAnyMethod();

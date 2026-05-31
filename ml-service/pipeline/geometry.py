@@ -39,20 +39,33 @@ class GeometryCleanupPipeline:
 
         centers = np.uint8(centers)
 
+        # Reconstruct localized image size with quantized labels inside the mask
+        # ⚡ Bolt Optimization: Map K-Means labels directly to an integer array instead of reconstructing
+        # the RGB image and using cv2.inRange. This allows fast O(N) boolean indexing per cluster,
+        # avoiding redundant O(W*H) pixel comparisons across all channels for every color.
+        label_img = np.zeros(roi_image.shape[:2], dtype=np.int32) - 1 # -1 is background
+        label_img[fg_mask] = labels.flatten()
+
+        # Create an empty RGBA output image (transparent background) with ORIGINAL image dimensions
         h_orig, w_orig = image.shape[:2]
         flat_output = np.zeros((h_orig, w_orig, 4), dtype=np.uint8)
 
-        # Create localized 2D label array
-        labels_flat = labels.flatten()
-        label_img = np.full((h_box, w_box), -1, dtype=np.int32)
-        label_img[fg_mask] = labels_flat
+        # Process each quantized color cluster independently to generate flat polygons
+        unique_labels = np.unique(labels)
 
-        for i, color in enumerate(centers):
-            if color[0] == 0 and color[1] == 0 and color[2] == 0:
+        # Note: label_img is ALREADY cropped to the bounding box (roi_image size).
+        # We simply use the already-cropped image directly.
+
+        for i in unique_labels:
+            color = centers[i]
+            # Skip the black background color
+            if np.all(color == [0, 0, 0]):
                 continue
 
-            # Vectorized boolean indexing is typically faster than inRange on an RGB image
-            color_mask = np.where(label_img == i, 255, 0).astype(np.uint8)
+            # Create a mask for this specific label using fast boolean indexing
+            # We use np.ascontiguousarray to ensure memory layout compatibility with findContours
+            color_mask = (label_img == i).astype(np.uint8) * 255
+            color_mask = np.ascontiguousarray(color_mask)
 
             contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE, offset=(x, y))
 
