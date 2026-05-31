@@ -65,7 +65,7 @@ async def run_extraction(request: ExtractionRequest):
             raise ValueError(f"Could not decode image at {source_path}")
 
         # 1. Detection
-        bboxes = inference_pipeline.run_rt_detr_detection(source_path)
+        bboxes = inference_pipeline.run_rt_detr_detection(original_image)
         output_paths = []
 
         # Pre-process image for SAM2 once to save time
