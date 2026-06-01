@@ -51,13 +51,13 @@ class GeometryCleanupPipeline:
         flat_output = np.zeros((h_orig, w_orig, 4), dtype=np.uint8)
 
         # Process each quantized color cluster independently to generate flat polygons
-        unique_labels = np.unique(labels)
+        # ⚡ Bolt Optimization: Iterate directly over the known cluster centers instead of
+        # using np.unique on the full labels array. This eliminates an O(N) deduplication step.
 
         # Note: label_img is ALREADY cropped to the bounding box (roi_image size).
         # We simply use the already-cropped image directly.
 
-        for i in unique_labels:
-            color = centers[i]
+        for i, color in enumerate(centers):
             # Skip the black background color
             if np.all(color == [0, 0, 0]):
                 continue
