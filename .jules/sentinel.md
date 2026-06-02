@@ -7,3 +7,8 @@
 **Vulnerability:** The .NET orchestrator binds to a local port and exposes REST APIs. Even with CORS restrictions to Tauri domains, a malicious process or DNS rebinding attack could potentially send requests directly to the bound localhost port.
 **Learning:** Pure CORS and loopback binding are not sufficient to prevent unauthorized local processes from hijacking sidecar APIs, especially those handling file system access or licenses.
 **Prevention:** Implement a strict IPC Secret Token mechanism where the frontend generates a secure random string on launch, passes it to the sidecar via CLI arguments, and includes it as a header (`X-IPC-Secret`) on all HTTP requests to validate authorization.
+
+## 2024-05-29 - [Timing Attack in IPC Secret Validation]
+**Vulnerability:** The .NET orchestrator used a standard string comparison (`providedSecret != ipcSecret`) to validate the `X-IPC-Secret` header, which is vulnerable to timing attacks. An attacker could theoretically guess the secret byte-by-byte by measuring the response time.
+**Learning:** Security-sensitive string comparisons, such as secret tokens, should be done using constant-time comparisons to prevent timing side-channel attacks.
+**Prevention:** Use `CryptographicOperations.FixedTimeEquals()` on the byte representation of strings when comparing secrets, ensuring to check the lengths first (as `FixedTimeEquals` requires arrays of the same length).

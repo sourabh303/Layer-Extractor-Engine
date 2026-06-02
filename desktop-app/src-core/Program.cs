@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Models;
@@ -55,8 +57,18 @@ app.Use(async (context, next) =>
 
     if (context.Request.Path.StartsWithSegments("/api"))
     {
-        if (!context.Request.Headers.TryGetValue("X-IPC-Secret", out var providedSecret) ||
-            providedSecret != ipcSecret)
+        if (!context.Request.Headers.TryGetValue("X-IPC-Secret", out var providedSecret))
+        {
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsync("Unauthorized: Invalid IPC Secret");
+            return;
+        }
+
+        var providedBytes = Encoding.UTF8.GetBytes(providedSecret.ToString());
+        var secretBytes = Encoding.UTF8.GetBytes(ipcSecret);
+
+        if (providedBytes.Length != secretBytes.Length ||
+            !CryptographicOperations.FixedTimeEquals(providedBytes, secretBytes))
         {
             context.Response.StatusCode = 401;
             await context.Response.WriteAsync("Unauthorized: Invalid IPC Secret");
