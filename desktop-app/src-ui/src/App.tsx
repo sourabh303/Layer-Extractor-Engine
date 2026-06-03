@@ -59,7 +59,6 @@ function App() {
       const command = Command.sidecar('bin/src-core', ['--ipc-secret', secret]);
 
       command.stdout.on('data', line => {
-        console.log(`[Sidecar Output]: ${line}`);
         if (line.includes('SIDECAR_PORT=')) {
           const port = parseInt(line.split('=')[1].trim());
           setSidecarPort(port);
