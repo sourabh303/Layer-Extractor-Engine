@@ -35,3 +35,21 @@ def test_vectorize_file_not_found():
 
     data = response.json()
     assert data["detail"] == "File not found: /invalid/path/that/does/not/exist.png"
+
+@patch('os.path.exists', return_value=True)
+@patch('cv2.imread', return_value=None)
+@patch('main.get_hardware_mode', return_value="CPU")
+def test_extract_invalid_image_decoding(mock_hw, mock_imread, mock_exists):
+    response = client.post(
+        "/extract",
+        json={"source_path": "/fake/path/invalid_image.jpg"}
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["status"] == "error"
+    assert "Could not decode image" in data["message"]
+    assert data["layers_extracted"] == 0
+    assert data["hardware_mode_used"] == "CPU"
+    assert data["output_paths"] == []
