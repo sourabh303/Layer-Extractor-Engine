@@ -8,7 +8,8 @@
     "build": "node build-sidecar.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:sidecar": "node build-sidecar.mjs"
+    "build:sidecar": "node build-sidecar.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
@@ -33,6 +34,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.8"
   }
 }
