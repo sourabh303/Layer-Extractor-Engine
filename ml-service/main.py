@@ -3,8 +3,6 @@ import argparse
 import asyncio
 import uuid
 import cv2
-import numpy as np
-from PIL import Image
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -55,13 +53,16 @@ async def run_extraction(request: ExtractionRequest):
     try:
         # Load the source image using OpenCV
         # Ensure it's read in BGR format
-        original_image = cv2.imread(source_path)
+        original_image = await asyncio.to_thread(cv2.imread, source_path)
         if original_image is None:
             raise ValueError(f"Could not decode image at {source_path}")
 
         # 1. Detection
-        bboxes = inference_pipeline.run_rt_detr_detection(source_path)
+        bboxes = inference_pipeline.run_rt_detr_detection(original_image)
         output_paths = []
+
+        # Pre-process image for SAM2 once to save time
+        preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
 
         # Process each detected motif
         for i, bbox in enumerate(bboxes):
@@ -72,18 +73,19 @@ async def run_extraction(request: ExtractionRequest):
             try:
                 # 45 second timeout constraint
                 mask = await asyncio.wait_for(
-                    inference_pipeline.run_sam2_segmentation(source_path, bbox),
+                    inference_pipeline.run_sam2_segmentation(preprocessed_tensor, original_shape, bbox),
                     timeout=45.0
                 )
             except asyncio.TimeoutError:
                 print("SAM2 segmentation timed out! Falling back to RT-DETR mask.")
-                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+                mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
             except Exception as e:
                 print(f"SAM2 failed: {e}. Falling back to RT-DETR mask.")
-                mask = inference_pipeline.run_rt_detr_fallback_mask(source_path, bbox)
+                mask = inference_pipeline.run_rt_detr_fallback_mask(original_image, bbox)
 
             # 3. Geometry Cleanup (CRITICAL)
-            flat_layer_rgba = geometry_pipeline.process_layer(original_image, mask)
+            # Run CPU-bound processing in a separate thread to unblock the async event loop
+            flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
             # Save strictly flat geometry PNG output
             output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"

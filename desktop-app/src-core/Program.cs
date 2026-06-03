@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Models;
@@ -26,6 +28,8 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
+        // SECURITY: Do not use AllowAnyOrigin(). Restrict origins to prevent Local API Hijacking
+        // and cross-origin attacks from malicious websites making requests to the local sidecar.
         policy.WithOrigins("http://localhost:5173", "tauri://localhost", "https://tauri.localhost", "http://tauri.localhost")
               .AllowAnyHeader()
               .AllowAnyMethod();
@@ -53,8 +57,18 @@ app.Use(async (context, next) =>
 
     if (context.Request.Path.StartsWithSegments("/api"))
     {
-        if (!context.Request.Headers.TryGetValue("X-IPC-Secret", out var providedSecret) ||
-            providedSecret != ipcSecret)
+        if (!context.Request.Headers.TryGetValue("X-IPC-Secret", out var providedSecret))
+        {
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsync("Unauthorized: Invalid IPC Secret");
+            return;
+        }
+
+        var providedBytes = Encoding.UTF8.GetBytes(providedSecret.ToString());
+        var secretBytes = Encoding.UTF8.GetBytes(ipcSecret);
+
+        if (providedBytes.Length != secretBytes.Length ||
+            !CryptographicOperations.FixedTimeEquals(providedBytes, secretBytes))
         {
             context.Response.StatusCode = 401;
             await context.Response.WriteAsync("Unauthorized: Invalid IPC Secret");
@@ -64,7 +78,7 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
-int pythonPort = GetAvailablePort();
+int pythonPort = src_core.NetworkUtilities.GetAvailablePort();
 Process? pythonProcess = null;
 
 app.Lifetime.ApplicationStarted.Register(() =>
@@ -163,12 +177,3 @@ app.MapPost("/api/extract", async ([FromBody] ExtractionRequest request, IHttpCl
 });
 
 app.Run();
-
-static int GetAvailablePort()
-{
-    var listener = new TcpListener(IPAddress.Loopback, 0);
-    listener.Start();
-    int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-    listener.Stop();
-    return port;
-}

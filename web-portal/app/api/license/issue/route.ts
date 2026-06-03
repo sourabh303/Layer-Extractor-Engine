@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const subscriptions = await response.json();
-  const activeSubscription = Array.isArray(subscriptions) && subscriptions.find((item: any) => item.status === 'active');
+  const activeSubscription = Array.isArray(subscriptions) && subscriptions.find((item: { status: string }) => item.status === 'active');
 
   if (!activeSubscription) {
     return NextResponse.json({ error: 'No active subscription found for this user.' }, { status: 403 });
