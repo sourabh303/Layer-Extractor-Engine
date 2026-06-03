@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("src-core.Tests")]
+
 namespace src_core.Services
 {
     public class LicenseService
@@ -194,7 +196,7 @@ namespace src_core.Services
             catch { }
         }
 
-        private string ExtractUserIdFromJwt(string jwt)
+        internal string ExtractUserIdFromJwt(string jwt)
         {
             try
             {
