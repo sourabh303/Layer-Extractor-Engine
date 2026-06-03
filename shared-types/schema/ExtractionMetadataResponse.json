@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExtractionMetadataResponse",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "source_path": {
+      "type": "string"
+    },
+    "layers_extracted": {
+      "type": "integer"
+    },
+    "hardware_mode_used": {
+      "type": "string"
+    },
+    "output_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "status",
+    "message",
+    "source_path",
+    "layers_extracted",
+    "hardware_mode_used",
+    "output_paths"
+  ]
+}
