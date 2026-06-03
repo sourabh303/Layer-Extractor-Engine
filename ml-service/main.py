@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from models.extraction_request import ExtractionRequest, ExtractionMetadataResponse
@@ -46,14 +46,7 @@ async def run_extraction(request: ExtractionRequest):
     print(f"Received extraction request for: {source_path}")
 
     if not os.path.exists(source_path):
-        return ExtractionMetadataResponse(
-            status="error",
-            message=f"File not found: {source_path}",
-            source_path=source_path,
-            layers_extracted=0,
-            hardware_mode_used=get_hardware_mode(),
-            output_paths=[]
-        )
+        raise HTTPException(status_code=404, detail=f"File not found: {source_path}")
 
     # Create temp directory
     temp_dir = os.path.join(os.environ.get("TEMP", "/tmp"), "AILayerEngine")
@@ -133,7 +126,7 @@ def run_vectorization(request: VectorizeRequest):
     Enforces strict polygon generation explicitly disabling curve fitting.
     """
     if not os.path.exists(request.source_path):
-        return VectorizeResponse(status="error", svg_path="")
+        raise HTTPException(status_code=404, detail=f"File not found: {request.source_path}")
 
     try:
         svg_path = vectorization_pipeline.process_layer_to_svg(
