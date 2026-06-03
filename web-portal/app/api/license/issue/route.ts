@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/subscriptions?select=status,current_period_end&user_id=eq.${userId}`,
+    `${supabaseUrl}/rest/v1/subscriptions?select=status,current_period_end&user_id=eq.${userId}&status=eq.active&limit=1`,
     {
       headers: {
         apikey: supabaseKey,
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const subscriptions = await response.json();
-  const activeSubscription = Array.isArray(subscriptions) && subscriptions.find((item: { status: string }) => item.status === 'active');
+  const activeSubscription = Array.isArray(subscriptions) && subscriptions.length > 0 ? subscriptions[0] : undefined;
 
   if (!activeSubscription) {
     return NextResponse.json({ error: 'No active subscription found for this user.' }, { status: 403 });
