@@ -78,7 +78,7 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
-int pythonPort = GetAvailablePort();
+int pythonPort = src_core.NetworkUtilities.GetAvailablePort();
 Process? pythonProcess = null;
 
 app.Lifetime.ApplicationStarted.Register(() =>
@@ -177,12 +177,3 @@ app.MapPost("/api/extract", async ([FromBody] ExtractionRequest request, IHttpCl
 });
 
 app.Run();
-
-static int GetAvailablePort()
-{
-    var listener = new TcpListener(IPAddress.Loopback, 0);
-    listener.Start();
-    int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-    listener.Stop();
-    return port;
-}
