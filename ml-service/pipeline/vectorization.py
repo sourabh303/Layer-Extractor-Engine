@@ -22,7 +22,7 @@ class VectorizationPipeline:
             length_threshold=4.0,
             max_iterations=10,
             splice_threshold=45,
-            path_precision=8         # High precision
-            # curve_fitting is disabled implicitly by using mode='polygon' in vtracer 0.6+
+            path_precision=8,        # High precision
+            curve_fitting=False      # explicitly disable as per docstring
         )
         return output_svg_path
