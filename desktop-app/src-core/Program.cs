@@ -180,3 +180,4 @@ app.MapPost("/api/extract", async ([FromBody] ExtractionRequest request, IHttpCl
 });
 
 app.Run();
+public partial class Program { }
