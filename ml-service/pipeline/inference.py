@@ -97,31 +97,37 @@ class AIInferencePipeline:
         # Using a generic post-processing assumption for standard YOLO/RT-DETR formats
         predictions = outputs[0][0] # Get first batch element
 
-        bboxes = []
         conf_threshold = 0.5
 
-        for pred in predictions:
-            # Format varies, assuming [x, y, w, h, conf, class1, class2...]
-            # or [x1, y1, x2, y2, conf, class]
-            if len(pred) >= 6:
-                # If it's x, y, w, h format (normalized 0-1)
-                x_c, y_c, w, h_box, conf = pred[0:5]
+        if len(predictions.shape) != 2 or predictions.shape[1] < 6:
+            return []
 
-                # Check if conf is actually a score or if we need to take max of class scores
-                score = conf if conf <= 1.0 else np.max(pred[5:])
+        confs = predictions[:, 4]
+        class_max = np.max(predictions[:, 5:], axis=1)
+        scores = np.where(confs <= 1.0, confs, class_max)
 
-                if score > conf_threshold:
-                    # Convert from normalized cx,cy,w,h to absolute x1,y1,x2,y2
-                    x1 = int((x_c - w/2) * w_orig)
-                    y1 = int((y_c - h_box/2) * h_orig)
-                    x2 = int((x_c + w/2) * w_orig)
-                    y2 = int((y_c + h_box/2) * h_orig)
+        mask = scores > conf_threshold
+        valid_preds = predictions[mask]
 
-                    # Clamp to image boundaries
-                    x1, y1 = max(0, x1), max(0, y1)
-                    x2, y2 = min(w_orig, x2), min(h_orig, y2)
+        if len(valid_preds) == 0:
+            return []
 
-                    bboxes.append((x1, y1, x2, y2))
+        x_c = valid_preds[:, 0]
+        y_c = valid_preds[:, 1]
+        w = valid_preds[:, 2]
+        h_box = valid_preds[:, 3]
+
+        x1 = (x_c - w / 2) * w_orig
+        y1 = (y_c - h_box / 2) * h_orig
+        x2 = (x_c + w / 2) * w_orig
+        y2 = (y_c + h_box / 2) * h_orig
+
+        x1 = np.clip(x1, 0, None).astype(int)
+        y1 = np.clip(y1, 0, None).astype(int)
+        x2 = np.clip(x2, None, w_orig).astype(int)
+        y2 = np.clip(y2, None, h_orig).astype(int)
+
+        bboxes = list(zip(x1.tolist(), y1.tolist(), x2.tolist(), y2.tolist()))
 
         return bboxes
 
