@@ -19,10 +19,15 @@ def test_extract_file_not_found(mock_get_hardware_mode):
         json={"source_path": "/invalid/path/that/does/not/exist.jpg"}
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 200
 
     data = response.json()
-    assert data["detail"] == "File not found: /invalid/path/that/does/not/exist.jpg"
+    assert data["status"] == "error"
+    assert data["message"] == "File not found: /invalid/path/that/does/not/exist.jpg"
+    assert data["source_path"] == "/invalid/path/that/does/not/exist.jpg"
+    assert data["layers_extracted"] == 0
+    assert data["hardware_mode_used"] == "CPU"
+    assert data["output_paths"] == []
 
 def test_vectorize_file_not_found():
     response = client.post(
