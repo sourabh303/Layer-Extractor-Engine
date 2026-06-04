@@ -111,6 +111,7 @@ void StartPythonMLService()
         UseShellExecute = false,
         CreateNoWindow = true
     };
+    startInfo.Environment["IPC_SECRET"] = ipcSecret;
 
     pythonProcess = new Process { StartInfo = startInfo };
     pythonProcess.Start();
@@ -147,6 +148,7 @@ app.MapPost("/api/boot", async ([FromBody] BootRequest req, LicenseService licen
 app.MapGet("/api/status", async (IHttpClientFactory clientFactory) =>
 {
     var client = clientFactory.CreateClient();
+    client.DefaultRequestHeaders.Add("X-IPC-Secret", ipcSecret);
     var response = await client.GetAsync($"http://127.0.0.1:{pythonPort}/status");
     if (response.IsSuccessStatusCode)
     {
@@ -167,6 +169,7 @@ app.Lifetime.ApplicationStopping.Register(() =>
 app.MapPost("/api/extract", async ([FromBody] ExtractionRequest request, IHttpClientFactory clientFactory) =>
 {
     var client = clientFactory.CreateClient();
+    client.DefaultRequestHeaders.Add("X-IPC-Secret", ipcSecret);
     var response = await client.PostAsJsonAsync($"http://127.0.0.1:{pythonPort}/extract", request);
     if (response.IsSuccessStatusCode)
     {

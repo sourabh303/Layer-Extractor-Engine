@@ -4,7 +4,9 @@ import asyncio
 import uuid
 import cv2
 import uvicorn
-from fastapi import FastAPI, HTTPException
+import hmac
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from models.extraction_request import ExtractionRequest, ExtractionMetadataResponse
@@ -19,6 +21,35 @@ app = FastAPI(title="ML Service - AI Textile Layer Extraction")
 inference_pipeline = AIInferencePipeline()
 geometry_pipeline = GeometryCleanupPipeline()
 vectorization_pipeline = VectorizationPipeline()
+
+@app.middleware("http")
+async def verify_ipc_secret(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    secret = os.environ.get("IPC_SECRET")
+    if not secret:
+        # Fail securely if IPC_SECRET is not configured
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "IPC_SECRET environment variable is not set."}
+        )
+
+    provided_secret = request.headers.get("X-IPC-Secret", "")
+    if not provided_secret:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized: Missing X-IPC-Secret header."}
+        )
+
+    # Constant-time comparison to prevent timing attacks
+    if not hmac.compare_digest(provided_secret.encode("utf-8"), secret.encode("utf-8")):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized: Invalid IPC Secret."}
+        )
+
+    return await call_next(request)
 
 class StatusResponse(BaseModel):
     mode: str
