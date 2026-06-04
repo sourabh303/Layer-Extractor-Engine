@@ -1,17 +1,178 @@
 using System;
+using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using src_core.Services;
 
 namespace src_core.Tests
 {
-    public class LicenseServiceTests
+    public class MockHttpMessageHandler : HttpMessageHandler
+    {
+        public Func<HttpRequestMessage, HttpResponseMessage>? SendAsyncFunc { get; set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (SendAsyncFunc != null)
+            {
+                return Task.FromResult(SendAsyncFunc(request));
+            }
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+    }
+
+    public class LicenseServiceTests : IDisposable
     {
         private readonly LicenseService _licenseService;
+        private readonly string _tempCacheDir;
 
         public LicenseServiceTests()
         {
-            _licenseService = new LicenseService();
+            _tempCacheDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            _licenseService = new LicenseService(new HttpClient(), _tempCacheDir);
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(_tempCacheDir))
+            {
+                Directory.Delete(_tempCacheDir, true);
+            }
+        }
+
+        [Fact]
+        public async Task VerifyAndActivateAsync_ValidLicense_ReturnsTrueAndCaches()
+        {
+            // Arrange
+            var mockHandler = new MockHttpMessageHandler();
+            var httpClient = new HttpClient(mockHandler);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+
+            var userId = "user-123";
+            var machineId = "machine-456";
+            var payloadJson = $"{{\"sub\":\"{userId}\"}}";
+            var payloadBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payloadJson));
+            var jwt = $"header.{payloadBase64}.signature";
+
+            mockHandler.SendAsyncFunc = req =>
+            {
+                if (req.RequestUri != null && req.RequestUri.PathAndQuery.Contains("/auth/v1/user"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                }
+                if (req.RequestUri != null && req.RequestUri.PathAndQuery.Contains("/rest/v1/licenses"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent($"[{{\"machine_id\":\"{machineId}\",\"trial_started_at\":\"{DateTimeOffset.UtcNow:O}\"}}]")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            };
+
+            // Act
+            var result = await licenseService.VerifyAndActivateAsync(jwt, machineId);
+
+            // Assert
+            Assert.True(result);
+            Assert.True(File.Exists(Path.Combine(_tempCacheDir, "license_cache.dat")));
+        }
+
+        [Fact]
+        public async Task VerifyAndActivateAsync_InvalidJwt_ReturnsFalse()
+        {
+            // Arrange
+            var mockHandler = new MockHttpMessageHandler();
+            var httpClient = new HttpClient(mockHandler);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+
+            var jwt = "invalid.jwt.token";
+            var machineId = "machine-456";
+
+            mockHandler.SendAsyncFunc = req => new HttpResponseMessage(HttpStatusCode.Unauthorized);
+
+            // Act
+            var result = await licenseService.VerifyAndActivateAsync(jwt, machineId);
+
+            // Assert
+            Assert.False(result);
+            Assert.False(File.Exists(Path.Combine(_tempCacheDir, "license_cache.dat")));
+        }
+
+        [Fact]
+        public async Task BootFromCacheAsync_ValidCache_ReturnsTrue()
+        {
+            // Arrange
+            var mockHandler = new MockHttpMessageHandler();
+            var httpClient = new HttpClient(mockHandler);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+
+            var userId = "user-123";
+            var machineId = "machine-456";
+            var payloadJson = $"{{\"sub\":\"{userId}\"}}";
+            var payloadBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payloadJson));
+            var jwt = $"header.{payloadBase64}.signature";
+
+            mockHandler.SendAsyncFunc = req =>
+            {
+                if (req.RequestUri != null && req.RequestUri.PathAndQuery.Contains("/auth/v1/user")) return new HttpResponseMessage(HttpStatusCode.OK);
+                if (req.RequestUri != null && req.RequestUri.PathAndQuery.Contains("/rest/v1/licenses"))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($"[{{\"machine_id\":\"{machineId}\",\"trial_started_at\":\"{DateTimeOffset.UtcNow:O}\"}}]") };
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            };
+
+            // Act
+            await licenseService.VerifyAndActivateAsync(jwt, machineId); // Cache it first
+            var result = await licenseService.BootFromCacheAsync(machineId);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task BootFromCacheAsync_NoCache_ReturnsFalse()
+        {
+            // Arrange
+            var licenseService = new LicenseService(new HttpClient(), _tempCacheDir);
+
+            // Act
+            var result = await licenseService.BootFromCacheAsync("machine-456");
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task GetCachedJwtAsync_ReturnsJwt()
+        {
+            // Arrange
+            var mockHandler = new MockHttpMessageHandler();
+            var httpClient = new HttpClient(mockHandler);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+
+            var userId = "user-123";
+            var machineId = "machine-456";
+            var payloadJson = $"{{\"sub\":\"{userId}\"}}";
+            var payloadBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payloadJson));
+            var jwt = $"header.{payloadBase64}.signature";
+
+            mockHandler.SendAsyncFunc = req =>
+            {
+                if (req.RequestUri != null && req.RequestUri.PathAndQuery.Contains("/auth/v1/user")) return new HttpResponseMessage(HttpStatusCode.OK);
+                if (req.RequestUri != null && req.RequestUri.PathAndQuery.Contains("/rest/v1/licenses"))
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($"[{{\"machine_id\":\"{machineId}\",\"trial_started_at\":\"{DateTimeOffset.UtcNow:O}\"}}]") };
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            };
+
+            // Act
+            await licenseService.VerifyAndActivateAsync(jwt, machineId); // Cache it first
+            var result = await licenseService.GetCachedJwtAsync(machineId);
+
+            // Assert
+            Assert.Equal(jwt, result);
         }
 
         [Theory]
