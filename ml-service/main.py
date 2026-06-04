@@ -44,7 +44,14 @@ async def run_extraction(request: ExtractionRequest):
     print(f"Received extraction request for: {source_path}")
 
     if not os.path.exists(source_path):
-        raise HTTPException(status_code=404, detail=f"File not found: {source_path}")
+        return ExtractionMetadataResponse(
+            status="error",
+            message=f"File not found: {source_path}",
+            source_path=source_path,
+            layers_extracted=0,
+            hardware_mode_used=get_hardware_mode(),
+            output_paths=[]
+        )
 
     # Create temp directory
     temp_dir = os.path.join(os.environ.get("TEMP", "/tmp"), "AILayerEngine")

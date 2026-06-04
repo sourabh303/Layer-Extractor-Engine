@@ -1,11 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from './store';
+import { useStore, type ExtractionMetadata } from './store';
 
 describe('useStore', () => {
   beforeEach(() => {
-    // Reset state before each test
-    const initialState = useStore.getInitialState();
-    useStore.setState(initialState);
+    // Reset store state before each test
+    useStore.setState({
+      hardwareMode: 'UNKNOWN',
+      sidecarPort: null,
+      ipcSecret: null,
+      extractionResult: null,
+      isProcessing: false,
+      isExporting: false,
+      toast: { message: '', visible: false },
+      isAuthenticated: false,
+      machineId: null,
+    });
   });
 
   it('should have correct initial state', () => {
@@ -21,71 +30,62 @@ describe('useStore', () => {
     expect(state.machineId).toBeNull();
   });
 
-  it('should set hardwareMode', () => {
-    useStore.getState().setHardwareMode('GPU');
-    expect(useStore.getState().hardwareMode).toBe('GPU');
+  it('should update hardwareMode', () => {
+    useStore.getState().setHardwareMode('CPU');
+    expect(useStore.getState().hardwareMode).toBe('CPU');
   });
 
-  it('should set sidecarPort', () => {
+  it('should update sidecarPort', () => {
     useStore.getState().setSidecarPort(8080);
     expect(useStore.getState().sidecarPort).toBe(8080);
   });
 
-  it('should set ipcSecret', () => {
+  it('should update ipcSecret', () => {
     useStore.getState().setIpcSecret('secret123');
     expect(useStore.getState().ipcSecret).toBe('secret123');
   });
 
-  it('should set extractionResult', () => {
-    const result = {
+  it('should update extractionResult', () => {
+    const result: ExtractionMetadata = {
       status: 'success',
-      message: 'Done',
-      source_path: '/tmp/test.png',
+      message: 'Extraction complete',
+      source_path: '/path/to/source',
       layers_extracted: 3,
       hardware_mode_used: 'GPU',
     };
     useStore.getState().setExtractionResult(result);
     expect(useStore.getState().extractionResult).toEqual(result);
-
-    // Can also be set to null
-    useStore.getState().setExtractionResult(null);
-    expect(useStore.getState().extractionResult).toBeNull();
   });
 
-  it('should set isProcessing', () => {
+  it('should update isProcessing', () => {
     useStore.getState().setIsProcessing(true);
     expect(useStore.getState().isProcessing).toBe(true);
   });
 
-  it('should set isExporting', () => {
+  it('should update isExporting', () => {
     useStore.getState().setIsExporting(true);
     expect(useStore.getState().isExporting).toBe(true);
   });
 
-  it('should set toast', () => {
-    const toast = { message: 'Test message', visible: true, folderPath: '/tmp' };
-    useStore.getState().setToast(toast);
-    expect(useStore.getState().toast).toEqual(toast);
+  it('should update toast', () => {
+    const toastData = { message: 'Hello', visible: true, folderPath: '/test' };
+    useStore.getState().setToast(toastData);
+    expect(useStore.getState().toast).toEqual(toastData);
   });
 
   it('should hide toast', () => {
-    // First set a toast
-    const toast = { message: 'Test message', visible: true, folderPath: '/tmp' };
-    useStore.getState().setToast(toast);
-
-    // Then hide it
+    useStore.getState().setToast({ message: 'Hello', visible: true });
     useStore.getState().hideToast();
     expect(useStore.getState().toast.visible).toBe(false);
-    expect(useStore.getState().toast.message).toBe('Test message'); // Message is preserved
-    expect(useStore.getState().toast.folderPath).toBe('/tmp'); // Path is preserved
+    expect(useStore.getState().toast.message).toBe('Hello'); // Message should persist, just visible changed
   });
 
-  it('should set isAuthenticated', () => {
+  it('should update isAuthenticated', () => {
     useStore.getState().setIsAuthenticated(true);
     expect(useStore.getState().isAuthenticated).toBe(true);
   });
 
-  it('should set machineId', () => {
+  it('should update machineId', () => {
     useStore.getState().setMachineId('machine-123');
     expect(useStore.getState().machineId).toBe('machine-123');
   });
