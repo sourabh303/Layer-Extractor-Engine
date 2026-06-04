@@ -2,8 +2,6 @@ import os
 import asyncio
 import numpy as np
 
-from PIL import Image
-
 # Determines if we should bypass loading actual weights for the local sandbox
 MOCK_INFERENCE = os.getenv("MOCK_INFERENCE", "false").lower() == "true"
 
