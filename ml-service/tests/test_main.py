@@ -34,7 +34,7 @@ def test_vectorize_file_not_found():
         "/vectorize",
         json={
             "source_path": "/invalid/path/that/does/not/exist.png",
-            "output_path": "/tmp/output.svg"
+            "output_path": "/tmp/AILayerEngine/output.svg"
         }
     )
 
@@ -129,20 +129,20 @@ def test_extract_decode_failure(mock_thread, mock_makedirs, mock_exists, mock_ge
     assert "Could not decode image at" in data["message"]
 
 @patch('os.path.exists', return_value=True)
-@patch('main.vectorization_pipeline.process_layer_to_svg', return_value="/out/output.svg")
+@patch('main.vectorization_pipeline.process_layer_to_svg', return_value="/tmp/AILayerEngine/output.svg")
 def test_vectorize_success(mock_process, mock_exists):
     response = client.post(
         "/vectorize",
         json={
             "source_path": "/dummy/path/in.png",
-            "output_path": "/out/output.svg"
+            "output_path": "/tmp/AILayerEngine/output.svg"
         }
     )
 
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
-    assert data["svg_path"] == "/out/output.svg"
+    assert data["svg_path"] == "/tmp/AILayerEngine/output.svg"
 
 @patch('os.path.exists', return_value=True)
 @patch('main.vectorization_pipeline.process_layer_to_svg', side_effect=Exception("Test error"))
@@ -151,7 +151,7 @@ def test_vectorize_failure(mock_process, mock_exists):
         "/vectorize",
         json={
             "source_path": "/dummy/path/in.png",
-            "output_path": "/out/output.svg"
+            "output_path": "/tmp/AILayerEngine/output.svg"
         }
     )
 
@@ -159,3 +159,20 @@ def test_vectorize_failure(mock_process, mock_exists):
     data = response.json()
     assert data["status"] == "error"
     assert data["svg_path"] == ""
+
+@patch('os.path.exists', return_value=True)
+@patch('main.vectorization_pipeline.process_layer_to_svg', return_value="/tmp/AILayerEngine/output.svg")
+def test_vectorize_path_traversal(mock_process, mock_exists):
+    response = client.post(
+        "/vectorize",
+        json={
+            "source_path": "/dummy/path/in.png",
+            "output_path": "/tmp/AILayerEngine/../output.svg"
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    # Verify the mocked function was called with the sanitized path
+    mock_process.assert_called_once_with("/dummy/path/in.png", "/tmp/AILayerEngine/output.svg")

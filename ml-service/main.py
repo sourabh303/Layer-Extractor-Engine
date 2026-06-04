@@ -137,10 +137,20 @@ def run_vectorization(request: VectorizeRequest):
     if not os.path.exists(request.source_path):
         raise HTTPException(status_code=404, detail=f"File not found: {request.source_path}")
 
+    temp_dir = os.path.abspath(os.path.join(os.environ.get("TEMP", "/tmp"), "AILayerEngine"))
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Secure output path against path traversal by only taking the filename
+    filename = os.path.basename(request.output_path)
+    if not filename:
+        raise HTTPException(status_code=400, detail="Invalid output path: Must provide a filename")
+
+    output_path = os.path.join(temp_dir, filename)
+
     try:
         svg_path = vectorization_pipeline.process_layer_to_svg(
             request.source_path,
-            request.output_path
+            output_path
         )
         return VectorizeResponse(status="success", svg_path=svg_path)
     except Exception as e:

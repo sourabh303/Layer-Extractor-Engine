@@ -12,3 +12,7 @@
 **Vulnerability:** The .NET orchestrator used a standard string comparison (`providedSecret != ipcSecret`) to validate the `X-IPC-Secret` header, which is vulnerable to timing attacks. An attacker could theoretically guess the secret byte-by-byte by measuring the response time.
 **Learning:** Security-sensitive string comparisons, such as secret tokens, should be done using constant-time comparisons to prevent timing side-channel attacks.
 **Prevention:** Use `CryptographicOperations.FixedTimeEquals()` on the byte representation of strings when comparing secrets, ensuring to check the lengths first (as `FixedTimeEquals` requires arrays of the same length).
+## 2024-05-XX Arbitrary File Write via Path Traversal
+* **Vulnerability:** Path traversal (`../`) in the `ml-service` vectorize endpoint allowed arbitrary file write by passing unsanitized absolute or relative paths to file writing functions.
+* **Learning:** Validating paths with `os.path.commonpath` can be brittle and break API contracts if clients don't know the exact server path. Using `os.path.basename()` to extract only the filename completely mitigates directory traversal attacks while remaining robust.
+* **Prevention:** Always use `os.path.basename()` on user-supplied paths intended for saving files, rather than trusting absolute paths or doing directory containment checks when not strictly needed.
