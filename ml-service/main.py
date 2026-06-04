@@ -102,8 +102,7 @@ async def run_extraction(request: ExtractionRequest):
         # Pre-process image for SAM2 once to save time
         preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
 
-        # Process each detected motif
-        for i, bbox in enumerate(bboxes):
+        async def process_single_bbox(i, bbox):
             print(f"Processing bounding box {i+1}/{len(bboxes)}...")
 
             # 2. Segmentation (with Timeout Graceful Fallback)
@@ -128,8 +127,19 @@ async def run_extraction(request: ExtractionRequest):
             # Save strictly flat geometry PNG output
             output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
             output_path = os.path.join(temp_dir, output_filename)
-            cv2.imwrite(output_path, flat_layer_rgba)
-            output_paths.append(output_path)
+            # Avoid blocking the event loop on file I/O
+            await asyncio.to_thread(cv2.imwrite, output_path, flat_layer_rgba)
+            return output_path
+
+        # Process each detected motif concurrently
+        tasks = [process_single_bbox(i, bbox) for i, bbox in enumerate(bboxes)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, Exception):
+                print(f"Error processing bounding box: {result}")
+            else:
+                output_paths.append(result)
 
         return ExtractionMetadataResponse(
             status="success",
