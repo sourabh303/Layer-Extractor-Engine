@@ -8,9 +8,24 @@ from fastapi.testclient import TestClient
 # Add the ml-service directory to the python path so we can import from main
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+os.environ["IPC_SECRET"] = "test_secret"
+
 from main import app
 
-client = TestClient(app)
+client = TestClient(app, headers={"X-IPC-Secret": "test_secret"})
+
+def test_authentication_missing_header():
+    # Create a client that doesn't include the header
+    no_auth_client = TestClient(app)
+    response = no_auth_client.get("/status")
+    assert response.status_code == 401
+    assert "Missing X-IPC-Secret header" in response.json()["detail"]
+
+def test_authentication_invalid_header():
+    invalid_auth_client = TestClient(app, headers={"X-IPC-Secret": "wrong_secret"})
+    response = invalid_auth_client.get("/status")
+    assert response.status_code == 401
+    assert "Invalid IPC Secret" in response.json()["detail"]
 
 @patch('main.get_hardware_mode', return_value="CPU")
 def test_extract_file_not_found(mock_get_hardware_mode):
