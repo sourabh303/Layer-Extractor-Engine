@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/subscriptions?select=status,current_period_end&user_id=eq.${userId}&status=eq.active`,
+    `${supabaseUrl}/rest/v1/subscriptions?select=status,current_period_end&user_id=eq.${userId}&status=eq.active&limit=1`,
     {
       headers: {
         apikey: supabaseKey,
