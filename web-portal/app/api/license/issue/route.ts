@@ -18,8 +18,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'user_id is required.' }, { status: 400 });
   }
 
+  // Validate that userId is a valid UUID to prevent injection
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) {
+    return NextResponse.json({ error: 'Invalid user_id format. Must be a valid UUID.' }, { status: 400 });
+  }
+
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/subscriptions?select=status,current_period_end&user_id=eq.${userId}&status=eq.active&limit=1`,
+    `${supabaseUrl}/rest/v1/subscriptions?select=status,current_period_end&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&limit=1`,
     {
       headers: {
         apikey: supabaseKey,
