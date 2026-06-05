@@ -21,15 +21,19 @@ namespace src_core.Services
         private readonly string _cacheFilePath;
         private const string ApplicationSalt = "jules_secret_salt_9x!L"; // Hardcoded salt for PBKDF2
 
-        public LicenseService()
+        public LicenseService() : this(new HttpClient(), null)
         {
-            _httpClient = new HttpClient();
+        }
+
+        internal LicenseService(HttpClient httpClient, string? cacheDirectoryOverride)
+        {
+            _httpClient = httpClient;
 
             // We use standard placeholder env vars for now
             _supabaseUrl = Environment.GetEnvironmentVariable("VITE_SUPABASE_URL") ?? "https://placeholder-url.supabase.co";
             _supabaseAnonKey = Environment.GetEnvironmentVariable("VITE_SUPABASE_ANON_KEY") ?? "placeholder-anon-key";
 
-            _cacheDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AITextileExtractor");
+            _cacheDirectory = cacheDirectoryOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AITextileExtractor");
             _cacheFilePath = Path.Combine(_cacheDirectory, "license_cache.dat");
 
             if (!Directory.Exists(_cacheDirectory))

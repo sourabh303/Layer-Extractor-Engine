@@ -20,10 +20,9 @@ public static class PsdWriter
 
         // 1. File Header
         writer.Write(Encoding.ASCII.GetBytes("8BPS")); // Signature
-        writer.Write((short)1); // Version
+        writer.Write(SwapBytes((short)1)); // Version
         writer.Write(new byte[6]); // Reserved
-        writer.Write((short)3); // Channels (RGB) - wait, if we want transparency, it needs to be 4 channels? Actually PSD layer transparency is handled in layer mask info. Standard RGB file has 3 channels in the main image data. We'll write 3 channels for the base, but layers have 4 (RGBA).
-        writer.Write(SwapBytes((short)3)); // Actually let's just write 3 channels for the document.
+        writer.Write(SwapBytes((short)3)); // Channels (3 = RGB)
         writer.Write(SwapBytes((int)height));
         writer.Write(SwapBytes((int)width));
         writer.Write(SwapBytes((short)8)); // Depth
