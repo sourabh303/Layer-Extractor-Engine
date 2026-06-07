@@ -54,15 +54,21 @@ class AIInferencePipeline:
         Runs RT-DETR to detect motifs and returns a list of bounding boxes.
         Returns: [(x1, y1, x2, y2), ...]
         """
-        if MOCK_INFERENCE:
-            # Mock 2 bounding boxes for testing
-            h, w = original_img.shape[:2]
-            return [
-                (int(w*0.1), int(h*0.1), int(w*0.4), int(h*0.4)),
-                (int(w*0.5), int(h*0.5), int(w*0.9), int(h*0.9))
-            ]
-
         import cv2
+
+        if MOCK_INFERENCE:
+            gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(gray, 60, 255, cv2.THRESH_BINARY)
+            kernel = np.ones((3,3), np.uint8)
+            opened = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+            closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel, iterations=2)
+            contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            bboxes = []
+            for c in contours:
+                x, y, w, h_box = cv2.boundingRect(c)
+                if w >= 15 and h_box >= 15:
+                    bboxes.append((int(x), int(y), int(x+w), int(y+h_box)))
+            return bboxes
 
 
         if not self.rt_detr_session:
@@ -157,30 +163,44 @@ class AIInferencePipeline:
 
         return input_tensor, (h_orig, w_orig)
 
-    async def run_sam2_segmentation(self, preprocessed_tensor, original_shape: tuple, bbox: tuple) -> np.ndarray:
+    async def run_sam2_segmentation(self, preprocessed_tensor, original_shape: tuple, bbox: tuple, original_img: np.ndarray = None) -> np.ndarray:
         """
         Runs SAM2 inference asynchronously to generate a high-quality segmentation mask.
         Returns a binary numpy array (mask).
         """
+        import cv2
+        import numpy as np
+
         if MOCK_INFERENCE:
             # Simulate processing time
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(0.1)
 
-            # Generate a mock circular mask inside the bbox
             h, w = original_shape
             mask = np.zeros((h, w), dtype=np.uint8)
-            x1, y1, x2, y2 = bbox
-            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-            r = min(x2 - x1, y2 - y1) // 2
 
-            y, x = np.ogrid[:h, :w]
-            dist_from_center = np.sqrt((x - cx)**2 + (y - cy)**2)
-            mask[dist_from_center <= r] = 255
+            if original_img is not None:
+                gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+                _, thresh = cv2.threshold(gray, 60, 255, cv2.THRESH_BINARY)
+                kernel = np.ones((3,3), np.uint8)
+                opened = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+                closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel, iterations=2)
+                contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                # Find the contour that matches this bbox
+                target_bbox = bbox
+                for c in contours:
+                    bx, by, bw, bh = cv2.boundingRect(c)
+                    c_bbox = (bx, by, bx+bw, by+bh)
+                    if c_bbox == target_bbox:
+                        cv2.drawContours(mask, [c], -1, 255, thickness=cv2.FILLED)
+                        break
+            else:
+                x1, y1, x2, y2 = bbox
+                mask[y1:y2, x1:x2] = 255
 
             return mask
 
         import torch
-        import cv2
 
 
         if not self.sam2_model:

@@ -5,6 +5,7 @@
 //    using Models;
 //
 //    var extractionRequest = ExtractionRequest.FromJson(jsonString);
+//    var extractionMetadataResponse = ExtractionMetadataResponse.FromJson(jsonString);
 //    var exportRequest = ExportRequest.FromJson(jsonString);
 //    var activateRequest = ActivateRequest.FromJson(jsonString);
 //    var bootRequest = BootRequest.FromJson(jsonString);
@@ -29,6 +30,48 @@ namespace Models
         /// </summary>
         [JsonPropertyName("source_path")]
         public string SourcePath { get; set; }
+    }
+
+    public partial class ExtractionMetadataResponse
+    {
+        [JsonPropertyName("bboxes")]
+        public long[][] Bboxes { get; set; }
+
+        [JsonPropertyName("hardware_mode_used")]
+        public string HardwareModeUsed { get; set; }
+
+        [JsonPropertyName("layers_extracted")]
+        public long LayersExtracted { get; set; }
+
+        [JsonPropertyName("localized_coordinates")]
+        public LocalizedCoordinate[] LocalizedCoordinates { get; set; }
+
+        [JsonPropertyName("message")]
+        public string Message { get; set; }
+
+        [JsonPropertyName("output_paths")]
+        public string[] OutputPaths { get; set; }
+
+        [JsonPropertyName("source_path")]
+        public string SourcePath { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; }
+    }
+
+    public partial class LocalizedCoordinate
+    {
+        [JsonPropertyName("height")]
+        public long Height { get; set; }
+
+        [JsonPropertyName("width")]
+        public long Width { get; set; }
+
+        [JsonPropertyName("x")]
+        public long X { get; set; }
+
+        [JsonPropertyName("y")]
+        public long Y { get; set; }
     }
 
     public partial class ExportRequest
@@ -83,6 +126,11 @@ namespace Models
         public static ExtractionRequest FromJson(string json) => JsonSerializer.Deserialize<ExtractionRequest>(json, Models.Converter.Settings);
     }
 
+    public partial class ExtractionMetadataResponse
+    {
+        public static ExtractionMetadataResponse FromJson(string json) => JsonSerializer.Deserialize<ExtractionMetadataResponse>(json, Models.Converter.Settings);
+    }
+
     public partial class ExportRequest
     {
         public static ExportRequest FromJson(string json) => JsonSerializer.Deserialize<ExportRequest>(json, Models.Converter.Settings);
@@ -101,6 +149,7 @@ namespace Models
     public static class Serialize
     {
         public static string ToJson(this ExtractionRequest self) => JsonSerializer.Serialize(self, Models.Converter.Settings);
+        public static string ToJson(this ExtractionMetadataResponse self) => JsonSerializer.Serialize(self, Models.Converter.Settings);
         public static string ToJson(this ExportRequest self) => JsonSerializer.Serialize(self, Models.Converter.Settings);
         public static string ToJson(this ActivateRequest self) => JsonSerializer.Serialize(self, Models.Converter.Settings);
         public static string ToJson(this BootRequest self) => JsonSerializer.Serialize(self, Models.Converter.Settings);
