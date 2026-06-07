@@ -81,7 +81,9 @@ async def run_extraction(request: ExtractionRequest):
             source_path=source_path,
             layers_extracted=0,
             hardware_mode_used=get_hardware_mode(),
-            output_paths=[]
+            output_paths=[],
+            bboxes=[],
+            localized_coordinates=[]
         )
 
     # Create temp directory
@@ -110,7 +112,7 @@ async def run_extraction(request: ExtractionRequest):
             try:
                 # 45 second timeout constraint
                 mask = await asyncio.wait_for(
-                    inference_pipeline.run_sam2_segmentation(preprocessed_tensor, original_shape, bbox),
+                    inference_pipeline.run_sam2_segmentation(preprocessed_tensor, original_shape, bbox, original_image),
                     timeout=45.0
                 )
             except asyncio.TimeoutError:
@@ -135,11 +137,22 @@ async def run_extraction(request: ExtractionRequest):
         tasks = [process_single_bbox(i, bbox) for i, bbox in enumerate(bboxes)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for result in results:
+        valid_bboxes = []
+        localized_coordinates = []
+
+        for i, result in enumerate(results):
             if isinstance(result, Exception):
                 print(f"Error processing bounding box: {result}")
             else:
                 output_paths.append(result)
+                bx1, by1, bx2, by2 = bboxes[i]
+                valid_bboxes.append([int(bx1), int(by1), int(bx2), int(by2)])
+                localized_coordinates.append({
+                    "x": int(bx1),
+                    "y": int(by1),
+                    "width": int(bx2 - bx1),
+                    "height": int(by2 - by1)
+                })
 
         return ExtractionMetadataResponse(
             status="success",
@@ -147,7 +160,9 @@ async def run_extraction(request: ExtractionRequest):
             source_path=source_path,
             layers_extracted=len(output_paths),
             hardware_mode_used=get_hardware_mode(),
-            output_paths=output_paths
+            output_paths=output_paths,
+            bboxes=valid_bboxes,
+            localized_coordinates=localized_coordinates
         )
 
     except Exception as e:
@@ -158,7 +173,9 @@ async def run_extraction(request: ExtractionRequest):
             source_path=source_path,
             layers_extracted=0,
             hardware_mode_used=get_hardware_mode(),
-            output_paths=[]
+            output_paths=[],
+            bboxes=[],
+            localized_coordinates=[]
         )
 
 class VectorizeRequest(BaseModel):

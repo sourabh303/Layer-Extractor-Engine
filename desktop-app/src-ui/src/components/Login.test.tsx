@@ -1,4 +1,4 @@
-import React from 'react';
+
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -21,7 +21,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 describe('Login Component', () => {
   beforeEach(() => {
@@ -59,8 +59,8 @@ describe('Login Component', () => {
   it('handles supabase authentication error', async () => {
     useStore.setState({ sidecarPort: 3000 });
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
-      error: { message: 'Invalid credentials', status: 400, name: 'AuthError' },
-      data: { user: null, session: null },
+      error: { message: "Invalid credentials", status: 400, name: "AuthError", code: "error", __isAuthError: true, toJSON: () => ({ name: "", message: "", status: 400, code: "" }) } as unknown as any,
+      data: { user: null as unknown as any, session: null as unknown as any },
     });
 
     render(<Login />);
@@ -150,7 +150,7 @@ describe('Login Component', () => {
 
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
       error: null,
-      data: { session: null, user: null }, // No session returned
+      data: { session: null as unknown as any, user: null as unknown as any }, // No session returned
     });
 
     render(<Login />);

@@ -23,6 +23,41 @@
       "items": {
         "type": "string"
       }
+    },
+    "bboxes": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "localized_coordinates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ]
+      }
     }
   },
   "required": [
@@ -31,6 +66,8 @@
     "source_path",
     "layers_extracted",
     "hardware_mode_used",
-    "output_paths"
+    "output_paths",
+    "bboxes",
+    "localized_coordinates"
   ]
 }

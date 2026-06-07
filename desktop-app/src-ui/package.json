@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "node build-sidecar.mjs && vite",
-    "build": "node build-sidecar.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:sidecar": "node build-sidecar.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "node build-sidecar.mjs && tsc -b && vite build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
