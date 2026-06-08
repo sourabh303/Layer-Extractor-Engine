@@ -35,27 +35,35 @@ export default function AuthForm() {
     <div className="max-w-[420px] mx-auto p-8 bg-gray-50 rounded-2xl shadow-sm border border-gray-100">
       <h1 className="mb-4 text-2xl font-semibold tracking-tight text-gray-900">{isLogin ? 'Sign in' : 'Create account'}</h1>
       <form onSubmit={handleSubmit} className="grid gap-3">
-        <label className="grid gap-1.5 text-sm font-medium text-gray-700">
-          Email
+        <div className="grid gap-1.5">
+          <label htmlFor="email" className="text-sm font-medium text-gray-700">
+            Email <span className="text-red-500">*</span>
+          </label>
           <input
+            id="email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
             className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
           />
-        </label>
-        <label className="grid gap-1.5 text-sm font-medium text-gray-700">
-          Password
+        </div>
+        <div className="grid gap-1.5">
+          <label htmlFor="password" className="text-sm font-medium text-gray-700">
+            Password <span className="text-red-500">*</span>
+          </label>
           <input
+            id="password"
             type="password"
+            autoComplete={isLogin ? "current-password" : "new-password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
             minLength={6}
             className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
           />
-        </label>
+        </div>
         <button type="submit" disabled={loading} className="p-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {loading ? 'Working…' : isLogin ? 'Sign in' : 'Create account'}
         </button>

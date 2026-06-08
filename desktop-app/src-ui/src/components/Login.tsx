@@ -89,26 +89,37 @@ export const Login: React.FC = () => {
         {error && <div role="alert" style={{ color: '#f72585', fontSize: '14px', textAlign: 'center', padding: '10px', backgroundColor: 'rgba(247, 37, 133, 0.1)', borderRadius: '4px' }}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <input
-            type="email"
-            aria-label="Email Address"
-            placeholder="Email Address"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            disabled={loading}
-            style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px', opacity: loading ? 0.7 : 1 }}
-          />
-          <input
-            type="password"
-            aria-label="Password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            disabled={loading}
-            style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px', opacity: loading ? 0.7 : 1 }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <label htmlFor="email" style={{ fontSize: '14px', color: '#ccc', fontWeight: 500 }}>
+              Email Address <span style={{ color: '#f72585' }}>*</span>
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px', opacity: loading ? 0.7 : 1 }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <label htmlFor="password" style={{ fontSize: '14px', color: '#ccc', fontWeight: 500 }}>
+              Password <span style={{ color: '#f72585' }}>*</span>
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              style={{ padding: '12px', borderRadius: '4px', border: '1px solid #444', backgroundColor: '#1e1e24', color: '#fff', fontSize: '14px', opacity: loading ? 0.7 : 1 }}
+            />
+          </div>
 
           <button
             type="submit"
