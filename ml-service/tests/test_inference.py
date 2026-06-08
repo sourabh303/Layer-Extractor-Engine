@@ -87,3 +87,40 @@ def test_run_rt_detr_detection_invalid_shape(inference_pipeline):
     bboxes = inference_pipeline.run_rt_detr_detection(original_img)
 
     assert len(bboxes) == 0
+
+def test_run_rt_detr_fallback_mask(inference_pipeline):
+    h_orig, w_orig = 100, 100
+    original_img = np.zeros((h_orig, w_orig, 3), dtype=np.uint8)
+    # create a mock square to be segmented inside the bounding box
+    original_img[40:60, 40:60] = 255
+
+    bbox = (30, 30, 70, 70)
+    mask = inference_pipeline.run_rt_detr_fallback_mask(original_img, bbox)
+
+    assert mask.shape == (h_orig, w_orig)
+    assert mask.dtype == np.uint8
+    # the whole region that was 255 should be in the foreground mask conceptually
+    # Grabcut with our parameters might do anything on zeros, but let's just make sure it returns a mask.
+    assert np.any(mask == 255)
+    # The mask outside the bounding box + margin should be zero
+    # Our margin is 50, so for a 100x100 img, the crop is the whole image.
+    # We will test smaller box in bigger image to ensure margins work
+
+def test_run_rt_detr_fallback_mask_large_img(inference_pipeline):
+    h_orig, w_orig = 1000, 1000
+    original_img = np.zeros((h_orig, w_orig, 3), dtype=np.uint8)
+    # create a mock square to be segmented inside the bounding box
+    original_img[500:520, 500:520] = 255
+
+    bbox = (490, 490, 530, 530)
+
+    # Run the fallback mock
+    mask = inference_pipeline.run_rt_detr_fallback_mask(original_img, bbox)
+
+    assert mask.shape == (h_orig, w_orig)
+    assert mask.dtype == np.uint8
+    # Everything outside of cropped area (440 to 580) should be zero. Let's check 0-400
+    assert np.all(mask[0:400, 0:400] == 0)
+
+    # Let's ensure grabcut actually grabbed something (we initialized the center with 255)
+    # It might fail to grab it properly because grabcut is complex, but at least we're checking dimensions.

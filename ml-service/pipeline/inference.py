@@ -264,21 +264,36 @@ class AIInferencePipeline:
 
         # We will fallback to a GrabCut algorithm bounded by the RT-DETR box as a realistic offline fallback
         h_orig, w_orig = original_img.shape[:2]
-        mask = np.zeros((h_orig, w_orig), np.uint8)
+
+        # ⚡ Bolt Optimization: Crop the image to the bounding box region (with margin)
+        # before running grabCut. Running grabCut on the full high-res array for a local box
+        # is extremely slow O(H*W). Cropping gives significant speedups.
+        x1, y1, x2, y2 = bbox
+        margin = 50
+        x1_crop = max(0, x1 - margin)
+        y1_crop = max(0, y1 - margin)
+        x2_crop = min(w_orig, x2 + margin)
+        y2_crop = min(h_orig, y2 + margin)
+
+        cropped_img = original_img[y1_crop:y2_crop, x1_crop:x2_crop]
+        cropped_mask = np.zeros(cropped_img.shape[:2], np.uint8)
 
         # bg and fg models for grabCut
         bgdModel = np.zeros((1,65), np.float64)
         fgdModel = np.zeros((1,65), np.float64)
 
-        # Rect format for grabCut is (x, y, w, h)
-        x1, y1, x2, y2 = bbox
-        rect = (x1, y1, x2 - x1, y2 - y1)
+        # Rect format for grabCut is (x, y, w, h) in the local cropped coordinate space
+        rect_cropped = (x1 - x1_crop, y1 - y1_crop, x2 - x1, y2 - y1)
 
-        # Apply grabCut
-        cv2.grabCut(original_img, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+        # Apply grabCut on the cropped region
+        cv2.grabCut(cropped_img, cropped_mask, rect_cropped, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
 
         # Modify mask such that all definite background and probable background are set to 0,
         # and definite foreground and probable foreground are set to 255
-        binary_mask = np.where((mask==2)|(mask==0), 0, 1).astype('uint8') * 255
+        cropped_binary = np.where((cropped_mask==2)|(cropped_mask==0), 0, 1).astype('uint8') * 255
+
+        # Place the cropped binary mask back onto the full-sized mask
+        binary_mask = np.zeros((h_orig, w_orig), dtype=np.uint8)
+        binary_mask[y1_crop:y2_crop, x1_crop:x2_crop] = cropped_binary
 
         return binary_mask
