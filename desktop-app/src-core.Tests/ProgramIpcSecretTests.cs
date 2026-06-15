@@ -16,6 +16,8 @@ public class ProgramIpcSecretTests : IClassFixture<WebApplicationFactory<Program
 
     public ProgramIpcSecretTests(WebApplicationFactory<Program> factory)
     {
+        Environment.SetEnvironmentVariable("VITE_SUPABASE_URL", "https://test.supabase.co");
+        Environment.SetEnvironmentVariable("VITE_SUPABASE_ANON_KEY", "test-anon-key");
         _factory = factory;
     }
 

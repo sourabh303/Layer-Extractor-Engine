@@ -25,13 +25,21 @@ namespace src_core.Services
         {
         }
 
-        internal LicenseService(HttpClient httpClient, string? cacheDirectoryOverride)
+        internal LicenseService(HttpClient httpClient, string? cacheDirectoryOverride, string? supabaseUrlOverride = null, string? supabaseAnonKeyOverride = null)
         {
             _httpClient = httpClient;
 
-            // We use standard placeholder env vars for now
-            _supabaseUrl = Environment.GetEnvironmentVariable("VITE_SUPABASE_URL") ?? "https://placeholder-url.supabase.co";
-            _supabaseAnonKey = Environment.GetEnvironmentVariable("VITE_SUPABASE_ANON_KEY") ?? "placeholder-anon-key";
+            _supabaseUrl = supabaseUrlOverride ?? Environment.GetEnvironmentVariable("VITE_SUPABASE_URL") ?? string.Empty;
+            if (string.IsNullOrEmpty(_supabaseUrl))
+            {
+                throw new InvalidOperationException("CRITICAL: VITE_SUPABASE_URL environment variable is missing.");
+            }
+
+            _supabaseAnonKey = supabaseAnonKeyOverride ?? Environment.GetEnvironmentVariable("VITE_SUPABASE_ANON_KEY") ?? string.Empty;
+            if (string.IsNullOrEmpty(_supabaseAnonKey))
+            {
+                throw new InvalidOperationException("CRITICAL: VITE_SUPABASE_ANON_KEY environment variable is missing.");
+            }
 
             _cacheDirectory = cacheDirectoryOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AITextileExtractor");
             _cacheFilePath = Path.Combine(_cacheDirectory, "license_cache.dat");
@@ -91,7 +99,7 @@ namespace src_core.Services
 
         public async Task<string?> GetCachedJwtAsync(string machineId)
         {
-             try
+            try
             {
                 if (!File.Exists(_cacheFilePath)) return null;
 
@@ -168,7 +176,8 @@ namespace src_core.Services
 
                     // If machine_id is null in DB, we should theoretically bind it here using a PATCH request.
                     // For the scope of this step, we will assume validity if the trial is active.
-                    if (!license.TryGetProperty("machine_id", out _) || license.GetProperty("machine_id").ValueKind == JsonValueKind.Null) {
+                    if (!license.TryGetProperty("machine_id", out _) || license.GetProperty("machine_id").ValueKind == JsonValueKind.Null)
+                    {
                         await BindMachineIdAsync(jwt, userId, machineId);
                     }
 
