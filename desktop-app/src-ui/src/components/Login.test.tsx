@@ -59,8 +59,8 @@ describe('Login Component', () => {
   it('handles supabase authentication error', async () => {
     useStore.setState({ sidecarPort: 3000 });
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
-      error: { message: "Invalid credentials", status: 400, name: "AuthError", code: "error", __isAuthError: true, toJSON: () => ({ name: "", message: "", status: 400, code: "" }) } as unknown as any,
-      data: { user: null as unknown as any, session: null as unknown as any },
+      error: { message: "Invalid credentials", status: 400, name: "AuthError", code: "error", __isAuthError: true, toJSON: () => ({ name: "", message: "", status: 400, code: "" }) } as never,
+      data: { user: null as never, session: null as never },
     });
 
     render(<Login />);
@@ -150,7 +150,7 @@ describe('Login Component', () => {
 
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
       error: null,
-      data: { session: null as unknown as any, user: null as unknown as any }, // No session returned
+      data: { session: null as never, user: null as never }, // No session returned
     });
 
     render(<Login />);
