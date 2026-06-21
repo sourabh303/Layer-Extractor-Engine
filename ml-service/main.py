@@ -98,11 +98,13 @@ async def run_extraction(request: ExtractionRequest):
             raise ValueError(f"Could not decode image at {source_path}")
 
         # 1. Detection
-        bboxes = inference_pipeline.run_rt_detr_detection(original_image)
+        # Run in thread to avoid blocking the event loop
+        bboxes = await asyncio.to_thread(inference_pipeline.run_rt_detr_detection, original_image)
         output_paths = []
 
         # Pre-process image for SAM2 once to save time
-        preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
+        # Run in thread to avoid blocking the event loop
+        preprocessed_tensor, original_shape = await asyncio.to_thread(inference_pipeline.preprocess_image_for_sam2, original_image)
 
         async def process_single_bbox(i, bbox):
             print(f"Processing bounding box {i+1}/{len(bboxes)}...")
