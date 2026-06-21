@@ -90,13 +90,11 @@ export const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label htmlFor="email" style={{ fontSize: '14px', color: '#ccc', fontWeight: 500 }}>
-              Email Address <span style={{ color: '#f72585' }}>*</span>
-            </label>
+            <label htmlFor="email" style={{ fontSize: '14px', color: '#ccc' }}>Email Address</label>
             <input
               id="email"
               type="email"
-              autoComplete="email"
+              placeholder="Email Address"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
@@ -106,13 +104,11 @@ export const Login: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label htmlFor="password" style={{ fontSize: '14px', color: '#ccc', fontWeight: 500 }}>
-              Password <span style={{ color: '#f72585' }}>*</span>
-            </label>
+            <label htmlFor="password" style={{ fontSize: '14px', color: '#ccc' }}>Password</label>
             <input
               id="password"
               type="password"
-              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required

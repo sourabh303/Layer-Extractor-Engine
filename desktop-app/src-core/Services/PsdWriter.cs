@@ -166,12 +166,15 @@ public static class PsdWriter
 
                     for (int i = 0; i < totalPixels; i++)
                     {
-                        if (isBgra) {
+                        if (isBgra)
+                        {
                             b[i] = ptr[i * 4];
                             g[i] = ptr[i * 4 + 1];
                             r[i] = ptr[i * 4 + 2];
                             a[i] = ptr[i * 4 + 3];
-                        } else {
+                        }
+                        else
+                        {
                             r[i] = ptr[i * 4];
                             g[i] = ptr[i * 4 + 1];
                             b[i] = ptr[i * 4 + 2];

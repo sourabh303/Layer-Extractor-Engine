@@ -32,7 +32,7 @@ namespace src_core.Tests
         public LicenseServiceTests()
         {
             _tempCacheDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            _licenseService = new LicenseService(new HttpClient(), _tempCacheDir);
+            _licenseService = new LicenseService(new HttpClient(), _tempCacheDir, "https://test.supabase.co", "test-anon-key");
         }
 
         public void Dispose()
@@ -49,7 +49,7 @@ namespace src_core.Tests
             // Arrange
             var mockHandler = new MockHttpMessageHandler();
             var httpClient = new HttpClient(mockHandler);
-            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir, "https://test.supabase.co", "test-anon-key");
 
             var userId = "user-123";
             var machineId = "machine-456";
@@ -87,7 +87,7 @@ namespace src_core.Tests
             // Arrange
             var mockHandler = new MockHttpMessageHandler();
             var httpClient = new HttpClient(mockHandler);
-            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir, "https://test.supabase.co", "test-anon-key");
 
             var jwt = "invalid.jwt.token";
             var machineId = "machine-456";
@@ -108,7 +108,7 @@ namespace src_core.Tests
             // Arrange
             var mockHandler = new MockHttpMessageHandler();
             var httpClient = new HttpClient(mockHandler);
-            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir, "https://test.supabase.co", "test-anon-key");
 
             var userId = "user-123";
             var machineId = "machine-456";
@@ -136,7 +136,7 @@ namespace src_core.Tests
         public async Task BootFromCacheAsync_NoCache_ReturnsFalse()
         {
             // Arrange
-            var licenseService = new LicenseService(new HttpClient(), _tempCacheDir);
+            var licenseService = new LicenseService(new HttpClient(), _tempCacheDir, "https://test.supabase.co", "test-anon-key");
 
             // Act
             var result = await licenseService.BootFromCacheAsync("machine-456");
@@ -151,7 +151,7 @@ namespace src_core.Tests
             // Arrange
             var mockHandler = new MockHttpMessageHandler();
             var httpClient = new HttpClient(mockHandler);
-            var licenseService = new LicenseService(httpClient, _tempCacheDir);
+            var licenseService = new LicenseService(httpClient, _tempCacheDir, "https://test.supabase.co", "test-anon-key");
 
             var userId = "user-123";
             var machineId = "machine-456";

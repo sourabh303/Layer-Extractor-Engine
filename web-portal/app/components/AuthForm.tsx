@@ -37,7 +37,7 @@ export default function AuthForm() {
       <form onSubmit={handleSubmit} className="grid gap-3">
         <div className="grid gap-1.5">
           <label htmlFor="email" className="text-sm font-medium text-gray-700">
-            Email <span className="text-red-500">*</span>
+            Email
           </label>
           <input
             id="email"
@@ -51,7 +51,7 @@ export default function AuthForm() {
         </div>
         <div className="grid gap-1.5">
           <label htmlFor="password" className="text-sm font-medium text-gray-700">
-            Password <span className="text-red-500">*</span>
+            Password
           </label>
           <input
             id="password"

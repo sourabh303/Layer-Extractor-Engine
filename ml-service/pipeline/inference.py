@@ -1,6 +1,7 @@
 import os
 import asyncio
 import numpy as np
+import cv2
 
 # Determines if we should bypass loading actual weights for the local sandbox
 MOCK_INFERENCE = os.getenv("MOCK_INFERENCE", "false").lower() == "true"
@@ -54,7 +55,6 @@ class AIInferencePipeline:
         Runs RT-DETR to detect motifs and returns a list of bounding boxes.
         Returns: [(x1, y1, x2, y2), ...]
         """
-        import cv2
 
         if MOCK_INFERENCE:
             gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
@@ -148,7 +148,6 @@ class AIInferencePipeline:
             return None, (h_orig, w_orig)
 
         import torch
-        import cv2
 
         if not self.sam2_model:
             raise RuntimeError("SAM2 model not loaded.")
@@ -168,8 +167,6 @@ class AIInferencePipeline:
         Runs SAM2 inference asynchronously to generate a high-quality segmentation mask.
         Returns a binary numpy array (mask).
         """
-        import cv2
-        import numpy as np
 
         if MOCK_INFERENCE:
             # Simulate processing time
@@ -254,7 +251,6 @@ class AIInferencePipeline:
             mask[y1:y2, x1:x2] = 255
             return mask
 
-        import cv2
 
 
         # If we had a true RT-DETR panoptic/instance segmentation model loaded,
@@ -264,21 +260,35 @@ class AIInferencePipeline:
 
         # We will fallback to a GrabCut algorithm bounded by the RT-DETR box as a realistic offline fallback
         h_orig, w_orig = original_img.shape[:2]
-        mask = np.zeros((h_orig, w_orig), np.uint8)
+        x1, y1, x2, y2 = bbox
+
+        # ⚡ Bolt Optimization: Crop the image to the bounding box plus a margin before
+        # running grabCut to avoid O(H*W) full-image processing overhead.
+        margin = 20
+        cx1 = max(0, x1 - margin)
+        cy1 = max(0, y1 - margin)
+        cx2 = min(w_orig, x2 + margin)
+        cy2 = min(h_orig, y2 + margin)
+
+        crop_img = original_img[cy1:cy2, cx1:cx2]
+        crop_mask = np.zeros(crop_img.shape[:2], np.uint8)
 
         # bg and fg models for grabCut
         bgdModel = np.zeros((1,65), np.float64)
         fgdModel = np.zeros((1,65), np.float64)
 
-        # Rect format for grabCut is (x, y, w, h)
-        x1, y1, x2, y2 = bbox
-        rect = (x1, y1, x2 - x1, y2 - y1)
+        # Rect format for grabCut is (x, y, w, h) - adjusted to the cropped image coordinates
+        rect = (x1 - cx1, y1 - cy1, x2 - x1, y2 - y1)
 
-        # Apply grabCut
-        cv2.grabCut(original_img, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+        # Apply grabCut on the cropped image
+        cv2.grabCut(crop_img, crop_mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
 
         # Modify mask such that all definite background and probable background are set to 0,
         # and definite foreground and probable foreground are set to 255
-        binary_mask = np.where((mask==2)|(mask==0), 0, 1).astype('uint8') * 255
+        crop_binary_mask = np.where((crop_mask==2)|(crop_mask==0), 0, 1).astype('uint8') * 255
+
+        # Remap the cropped mask back to the original image dimensions
+        binary_mask = np.zeros((h_orig, w_orig), np.uint8)
+        binary_mask[cy1:cy2, cx1:cx2] = crop_binary_mask
 
         return binary_mask
