@@ -99,11 +99,13 @@ async def run_extraction(request: ExtractionRequest):
             raise ValueError(f"Could not decode image at {source_path}")
 
         # 1. Detection
-        bboxes = inference_pipeline.run_rt_detr_detection(original_image)
+        # Run in thread to avoid blocking the event loop
+        bboxes = await asyncio.to_thread(inference_pipeline.run_rt_detr_detection, original_image)
         output_paths = []
 
         # Pre-process image for SAM2 once to save time
-        preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
+        # Run in thread to avoid blocking the event loop
+        preprocessed_tensor, original_shape = await asyncio.to_thread(inference_pipeline.preprocess_image_for_sam2, original_image)
 
         async def process_single_bbox(i, bbox):
             print(f"Processing bounding box {i+1}/{len(bboxes)}...")
@@ -128,7 +130,7 @@ async def run_extraction(request: ExtractionRequest):
             flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
             # Save strictly flat geometry PNG output
-            output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
+            output_filename = f"layer_{uuid.uuid4().hex}_{i}.png"
             output_path = os.path.join(temp_dir, output_filename)
             # Avoid blocking the event loop on file I/O
             await asyncio.to_thread(cv2.imwrite, output_path, flat_layer_rgba)
@@ -205,7 +207,9 @@ def run_vectorization(request: VectorizeRequest):
     if not filename:
         raise HTTPException(status_code=400, detail="Invalid output path: Must provide a filename")
 
-    output_path = os.path.join(temp_dir, filename)
+    output_path = os.path.abspath(os.path.join(temp_dir, filename))
+    if os.path.commonpath([temp_dir, output_path]) != temp_dir:
+        raise HTTPException(status_code=400, detail="Invalid output path: Path traversal detected")
 
     try:
         svg_path = vectorization_pipeline.process_layer_to_svg(

@@ -19,7 +19,6 @@ namespace src_core.Services
         private readonly string _supabaseAnonKey;
         private readonly string _cacheDirectory;
         private readonly string _cacheFilePath;
-        private const string ApplicationSalt = "jules_secret_salt_9x!L"; // Hardcoded salt for PBKDF2
 
         public LicenseService() : this(new HttpClient(), null)
         {
@@ -247,13 +246,17 @@ namespace src_core.Services
 
         private byte[] Encrypt(string plainText, string machineId)
         {
-            var key = DeriveKey(machineId);
+            var salt = new byte[16];
+            RandomNumberGenerator.Fill(salt);
+
+            var key = DeriveKey(machineId, salt);
             using var aes = Aes.Create();
             aes.Key = key;
             aes.GenerateIV();
 
             using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
             using var ms = new MemoryStream();
+            ms.Write(salt, 0, salt.Length); // Prepend Salt
             ms.Write(aes.IV, 0, aes.IV.Length); // Prepend IV
             using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
             using (var sw = new StreamWriter(cs))
@@ -265,26 +268,29 @@ namespace src_core.Services
 
         private string Decrypt(byte[] cipherData, string machineId)
         {
-            var key = DeriveKey(machineId);
+            var salt = new byte[16];
+            Array.Copy(cipherData, 0, salt, 0, salt.Length);
+
+            var key = DeriveKey(machineId, salt);
             using var aes = Aes.Create();
             aes.Key = key;
 
             var iv = new byte[aes.BlockSize / 8];
-            Array.Copy(cipherData, 0, iv, 0, iv.Length);
+            Array.Copy(cipherData, salt.Length, iv, 0, iv.Length);
             aes.IV = iv;
 
             using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-            using var ms = new MemoryStream(cipherData, iv.Length, cipherData.Length - iv.Length);
+            var offset = salt.Length + iv.Length;
+            using var ms = new MemoryStream(cipherData, offset, cipherData.Length - offset);
             using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
             using var sr = new StreamReader(cs);
             return sr.ReadToEnd();
         }
 
-        private byte[] DeriveKey(string machineId)
+        private byte[] DeriveKey(string machineId, byte[] salt)
         {
             // Cross-platform key derivation using PBKDF2 (Rfc2898DeriveBytes)
-            var saltBytes = Encoding.UTF8.GetBytes(ApplicationSalt);
-            using var pbkdf2 = new Rfc2898DeriveBytes(machineId, saltBytes, 100000, HashAlgorithmName.SHA256);
+            using var pbkdf2 = new Rfc2898DeriveBytes(machineId, salt, 100000, HashAlgorithmName.SHA256);
             return pbkdf2.GetBytes(32); // 256-bit key
         }
 
