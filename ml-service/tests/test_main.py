@@ -191,3 +191,17 @@ def test_vectorize_path_traversal(mock_process, mock_exists):
     assert data["status"] == "success"
     # Verify the mocked function was called with the sanitized path
     mock_process.assert_called_once_with("/dummy/path/in.png", "/tmp/AILayerEngine/output.svg")
+
+@patch('os.path.exists', return_value=True)
+def test_vectorize_malicious_path_traversal(mock_exists):
+    response = client.post(
+        "/vectorize",
+        json={
+            "source_path": "/dummy/path/in.png",
+            "output_path": ".."
+        }
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Invalid output path: Path traversal detected"
