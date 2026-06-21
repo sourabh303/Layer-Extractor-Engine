@@ -205,7 +205,9 @@ def run_vectorization(request: VectorizeRequest):
     if not filename:
         raise HTTPException(status_code=400, detail="Invalid output path: Must provide a filename")
 
-    output_path = os.path.join(temp_dir, filename)
+    output_path = os.path.abspath(os.path.join(temp_dir, filename))
+    if os.path.commonpath([temp_dir, output_path]) != temp_dir:
+        raise HTTPException(status_code=400, detail="Invalid output path: Path traversal detected")
 
     try:
         svg_path = vectorization_pipeline.process_layer_to_svg(
