@@ -69,6 +69,16 @@ def mock_to_thread(func, *args, **kwargs):
     import cv2
     if func == cv2.imread:
         return np.zeros((100, 100, 3), dtype=np.uint8)
+    # The functions run_rt_detr_detection and preprocess_image_for_sam2
+    # are called on the inference_pipeline instance, so `func` will be
+    # those bound methods.
+    func_name = getattr(func, "__name__", "")
+    if func_name == "run_rt_detr_detection":
+        return [(0, 0, 10, 10)]
+    if func_name == "preprocess_image_for_sam2":
+        return (None, (100, 100))
+    if func == cv2.imwrite:
+        return None
     # Assume it's geometry_pipeline.process_layer
     return np.zeros((100, 100, 4), dtype=np.uint8)
 
@@ -76,12 +86,9 @@ def mock_to_thread(func, *args, **kwargs):
 @patch('os.path.exists', return_value=True)
 @patch('os.makedirs')
 @patch('asyncio.to_thread', side_effect=mock_to_thread)
-@patch('main.inference_pipeline.run_rt_detr_detection', return_value=[(0, 0, 10, 10)])
-@patch('main.inference_pipeline.preprocess_image_for_sam2', return_value=(None, (100, 100)))
 @patch('main.inference_pipeline.run_sam2_segmentation', new_callable=AsyncMock, return_value=np.zeros((100, 100), dtype=np.uint8))
-@patch('cv2.imwrite')
 @patch('uuid.uuid4')
-def test_extract_success(mock_uuid4, mock_imwrite, mock_sam2, mock_preprocess, mock_detection, mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
+def test_extract_success(mock_uuid4, mock_sam2, mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
     class MockUUID:
         hex = "1234567890abcdef"
     mock_uuid4.return_value = MockUUID()
@@ -105,13 +112,10 @@ def test_extract_success(mock_uuid4, mock_imwrite, mock_sam2, mock_preprocess, m
 @patch('os.path.exists', return_value=True)
 @patch('os.makedirs')
 @patch('asyncio.to_thread', side_effect=mock_to_thread)
-@patch('main.inference_pipeline.run_rt_detr_detection', return_value=[(0, 0, 10, 10)])
-@patch('main.inference_pipeline.preprocess_image_for_sam2', return_value=(None, (100, 100)))
 @patch('main.inference_pipeline.run_sam2_segmentation', new_callable=AsyncMock, side_effect=asyncio.TimeoutError())
 @patch('main.inference_pipeline.run_rt_detr_fallback_mask', return_value=np.zeros((100, 100), dtype=np.uint8))
-@patch('cv2.imwrite')
 @patch('uuid.uuid4')
-def test_extract_sam2_timeout_fallback(mock_uuid4, mock_imwrite, mock_fallback, mock_sam2, mock_preprocess, mock_detection, mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
+def test_extract_sam2_timeout_fallback(mock_uuid4, mock_fallback, mock_sam2, mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
     class MockUUID:
         hex = "1234567890abcdef"
     mock_uuid4.return_value = MockUUID()
