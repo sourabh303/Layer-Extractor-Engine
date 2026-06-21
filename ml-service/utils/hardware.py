@@ -6,9 +6,12 @@ def get_hardware_mode() -> str:
     Detects if CUDA is available and returns the appropriate hardware mode.
     Returns "GPU" if CUDAExecutionProvider is available, otherwise "CPU".
     """
-    available_providers = ort.get_available_providers()
-    if 'CUDAExecutionProvider' in available_providers:
-        return "GPU"
+    try:
+        available_providers = ort.get_available_providers()
+        if available_providers and 'CUDAExecutionProvider' in available_providers:
+            return "GPU"
+    except Exception:
+        pass
     return "CPU"
 
 def get_execution_providers() -> list:
