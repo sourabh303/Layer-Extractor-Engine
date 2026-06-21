@@ -129,7 +129,7 @@ async def run_extraction(request: ExtractionRequest):
             flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
             # Save strictly flat geometry PNG output
-            output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
+            output_filename = f"layer_{uuid.uuid4().hex}_{i}.png"
             output_path = os.path.join(temp_dir, output_filename)
             # Avoid blocking the event loop on file I/O
             await asyncio.to_thread(cv2.imwrite, output_path, flat_layer_rgba)

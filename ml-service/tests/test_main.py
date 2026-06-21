@@ -102,7 +102,7 @@ def test_extract_success(mock_uuid4, mock_imwrite, mock_sam2, mock_thread, mock_
     assert data["hardware_mode_used"] == "CPU"
     assert data["source_path"] == "/dummy/path/dummy.jpg"
     assert len(data["output_paths"]) == 1
-    assert "layer_12345678_0.png" in data["output_paths"][0]
+    assert "layer_1234567890abcdef_0.png" in data["output_paths"][0]
 
 @patch('main.get_hardware_mode', return_value="CPU")
 @patch('os.path.exists', return_value=True)
