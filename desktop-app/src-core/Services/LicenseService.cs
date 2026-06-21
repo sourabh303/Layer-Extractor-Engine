@@ -29,9 +29,19 @@ namespace src_core.Services
         {
             _httpClient = httpClient;
 
-            // We use standard placeholder env vars for now
-            _supabaseUrl = Environment.GetEnvironmentVariable("VITE_SUPABASE_URL") ?? "https://placeholder-url.supabase.co";
-            _supabaseAnonKey = Environment.GetEnvironmentVariable("VITE_SUPABASE_ANON_KEY") ?? "placeholder-anon-key";
+            var supabaseUrl = Environment.GetEnvironmentVariable("VITE_SUPABASE_URL");
+            if (string.IsNullOrEmpty(supabaseUrl))
+            {
+                throw new InvalidOperationException("VITE_SUPABASE_URL environment variable is missing.");
+            }
+            _supabaseUrl = supabaseUrl;
+
+            var supabaseAnonKey = Environment.GetEnvironmentVariable("VITE_SUPABASE_ANON_KEY");
+            if (string.IsNullOrEmpty(supabaseAnonKey))
+            {
+                throw new InvalidOperationException("VITE_SUPABASE_ANON_KEY environment variable is missing.");
+            }
+            _supabaseAnonKey = supabaseAnonKey;
 
             _cacheDirectory = cacheDirectoryOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AITextileExtractor");
             _cacheFilePath = Path.Combine(_cacheDirectory, "license_cache.dat");

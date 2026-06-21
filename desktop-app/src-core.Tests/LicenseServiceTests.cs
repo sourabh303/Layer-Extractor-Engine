@@ -31,6 +31,9 @@ namespace src_core.Tests
 
         public LicenseServiceTests()
         {
+            Environment.SetEnvironmentVariable("VITE_SUPABASE_URL", "https://placeholder-url.supabase.co");
+            Environment.SetEnvironmentVariable("VITE_SUPABASE_ANON_KEY", "placeholder-anon-key");
+
             _tempCacheDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             _licenseService = new LicenseService(new HttpClient(), _tempCacheDir);
         }
