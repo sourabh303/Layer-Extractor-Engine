@@ -87,3 +87,57 @@ def test_run_rt_detr_detection_invalid_shape(inference_pipeline):
     bboxes = inference_pipeline.run_rt_detr_detection(original_img)
 
     assert len(bboxes) == 0
+
+@patch("cv2.grabCut")
+def test_run_rt_detr_fallback_mask(mock_grabcut, inference_pipeline):
+    h_orig, w_orig = 50, 50
+    original_img = np.zeros((h_orig, w_orig, 3), dtype=np.uint8)
+    bbox = (10, 10, 40, 40)
+
+    # Mock grabcut behavior to simulate modifying the mask
+    # cv2.GC_PR_BGD is 2, cv2.GC_PR_FGD is 3
+    def mock_grabcut_side_effect(img, mask, rect, bgdModel, fgdModel, iterCount, mode):
+        # Set all to probable background
+        mask[:] = 2
+        # Set a small region to probable foreground
+        mask[20:30, 20:30] = 3
+
+    mock_grabcut.side_effect = mock_grabcut_side_effect
+
+    binary_mask = inference_pipeline.run_rt_detr_fallback_mask(original_img, bbox)
+
+    # Validate grabCut was called with correct arguments
+    assert mock_grabcut.called
+    args, kwargs = mock_grabcut.call_args
+    assert np.array_equal(args[0], original_img)
+    assert args[2] == (10, 10, 30, 30) # rect format: x, y, w, h
+    assert args[5] == 5 # iterCount
+    # cv2.GC_INIT_WITH_RECT is 0
+    import cv2
+    assert args[6] == cv2.GC_INIT_WITH_RECT
+
+    # Validate the resulting binary mask
+    assert binary_mask.shape == (50, 50)
+    assert binary_mask.dtype == np.uint8
+
+    # Check that probable background (2) became 0
+    assert binary_mask[10, 10] == 0
+
+    # Check that probable foreground (3) became 255
+    assert binary_mask[25, 25] == 255
+
+def test_run_rt_detr_fallback_mask_mock_inference(inference_pipeline):
+    with patch("pipeline.inference.MOCK_INFERENCE", True):
+        h_orig, w_orig = 50, 50
+        original_img = np.zeros((h_orig, w_orig, 3), dtype=np.uint8)
+        bbox = (10, 10, 40, 40)
+
+        binary_mask = inference_pipeline.run_rt_detr_fallback_mask(original_img, bbox)
+
+        assert binary_mask.shape == (50, 50)
+        assert binary_mask.dtype == np.uint8
+
+        # Rectangular mask should be filled with 255 inside bbox
+        assert binary_mask[20, 20] == 255
+        # Background should be 0
+        assert binary_mask[5, 5] == 0
