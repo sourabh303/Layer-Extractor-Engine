@@ -89,6 +89,7 @@ async def run_extraction(request: ExtractionRequest):
     # Create temp directory
     temp_dir = os.path.join(os.environ.get("TEMP", "/tmp"), "AILayerEngine")
     os.makedirs(temp_dir, exist_ok=True)
+    os.chmod(temp_dir, 0o700)
 
     try:
         # Load the source image using OpenCV
@@ -197,6 +198,7 @@ def run_vectorization(request: VectorizeRequest):
 
     temp_dir = os.path.abspath(os.path.join(os.environ.get("TEMP", "/tmp"), "AILayerEngine"))
     os.makedirs(temp_dir, exist_ok=True)
+    os.chmod(temp_dir, 0o700)
 
     # Secure output path against path traversal by only taking the filename
     filename = os.path.basename(request.output_path)
