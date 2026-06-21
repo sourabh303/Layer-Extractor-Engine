@@ -80,6 +80,7 @@ def mock_to_thread(func, *args, **kwargs):
 @patch('main.get_hardware_mode', return_value="CPU")
 @patch('os.path.exists', return_value=True)
 @patch('os.makedirs')
+@patch('os.chmod')
 @patch('asyncio.to_thread', side_effect=mock_to_thread)
 @patch('main.inference_pipeline.run_sam2_segmentation', new_callable=AsyncMock, return_value=np.zeros((100, 100), dtype=np.uint8))
 @patch('uuid.uuid4')
@@ -106,6 +107,7 @@ def test_extract_success(mock_uuid4, mock_imwrite, mock_sam2, mock_thread, mock_
 @patch('main.get_hardware_mode', return_value="CPU")
 @patch('os.path.exists', return_value=True)
 @patch('os.makedirs')
+@patch('os.chmod')
 @patch('asyncio.to_thread', side_effect=mock_to_thread)
 @patch('main.inference_pipeline.run_sam2_segmentation', new_callable=AsyncMock, side_effect=asyncio.TimeoutError())
 @patch('main.inference_pipeline.run_rt_detr_fallback_mask', return_value=np.zeros((100, 100), dtype=np.uint8))
@@ -129,8 +131,9 @@ def test_extract_sam2_timeout_fallback(mock_uuid4, mock_imwrite, mock_fallback, 
 @patch('main.get_hardware_mode', return_value="CPU")
 @patch('os.path.exists', return_value=True)
 @patch('os.makedirs')
+@patch('os.chmod')
 @patch('asyncio.to_thread', return_value=None)
-def test_extract_decode_failure(mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
+def test_extract_decode_failure(mock_thread, mock_chmod, mock_makedirs, mock_exists, mock_get_hardware_mode):
     response = client.post(
         "/extract",
         json={"source_path": "/dummy/path/dummy.jpg"}

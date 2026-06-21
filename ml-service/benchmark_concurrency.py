@@ -63,6 +63,7 @@ async def main():
     preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
     temp_dir = "/tmp/AILayerEngineBench"
     os.makedirs(temp_dir, exist_ok=True)
+    os.chmod(temp_dir, 0o700)
 
     # Warmup
     await process_bbox_sequential(bboxes[:1], preprocessed_tensor, original_shape, original_image, temp_dir)
