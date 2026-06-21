@@ -21,6 +21,18 @@ def test_get_hardware_mode_empty(mocker):
     mode = get_hardware_mode()
     assert mode == "CPU"
 
+def test_get_hardware_mode_none(mocker):
+    # Mock ort.get_available_providers to return None
+    mocker.patch('utils.hardware.ort.get_available_providers', return_value=None)
+    mode = get_hardware_mode()
+    assert mode == "CPU"
+
+def test_get_hardware_mode_exception(mocker):
+    # Mock ort.get_available_providers to raise an Exception
+    mocker.patch('utils.hardware.ort.get_available_providers', side_effect=Exception("Mocked exception"))
+    mode = get_hardware_mode()
+    assert mode == "CPU"
+
 def test_get_execution_providers_gpu(mocker):
     # Mock get_hardware_mode to return GPU
     mocker.patch('utils.hardware.get_hardware_mode', return_value="GPU")
