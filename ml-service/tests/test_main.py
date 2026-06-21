@@ -82,7 +82,6 @@ def mock_to_thread(func, *args, **kwargs):
 @patch('os.makedirs')
 @patch('asyncio.to_thread', side_effect=mock_to_thread)
 @patch('main.inference_pipeline.run_sam2_segmentation', new_callable=AsyncMock, return_value=np.zeros((100, 100), dtype=np.uint8))
-@patch('cv2.imwrite')
 @patch('uuid.uuid4')
 def test_extract_success(mock_uuid4, mock_imwrite, mock_sam2, mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
     class MockUUID:
@@ -110,7 +109,6 @@ def test_extract_success(mock_uuid4, mock_imwrite, mock_sam2, mock_thread, mock_
 @patch('asyncio.to_thread', side_effect=mock_to_thread)
 @patch('main.inference_pipeline.run_sam2_segmentation', new_callable=AsyncMock, side_effect=asyncio.TimeoutError())
 @patch('main.inference_pipeline.run_rt_detr_fallback_mask', return_value=np.zeros((100, 100), dtype=np.uint8))
-@patch('cv2.imwrite')
 @patch('uuid.uuid4')
 def test_extract_sam2_timeout_fallback(mock_uuid4, mock_imwrite, mock_fallback, mock_sam2, mock_thread, mock_makedirs, mock_exists, mock_get_hardware_mode):
     class MockUUID:
