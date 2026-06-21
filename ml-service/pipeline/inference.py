@@ -1,6 +1,7 @@
 import os
 import asyncio
 import numpy as np
+import cv2
 
 # Determines if we should bypass loading actual weights for the local sandbox
 MOCK_INFERENCE = os.getenv("MOCK_INFERENCE", "false").lower() == "true"
@@ -54,7 +55,6 @@ class AIInferencePipeline:
         Runs RT-DETR to detect motifs and returns a list of bounding boxes.
         Returns: [(x1, y1, x2, y2), ...]
         """
-        import cv2
 
         if MOCK_INFERENCE:
             gray = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
@@ -148,7 +148,6 @@ class AIInferencePipeline:
             return None, (h_orig, w_orig)
 
         import torch
-        import cv2
 
         if not self.sam2_model:
             raise RuntimeError("SAM2 model not loaded.")
@@ -168,8 +167,6 @@ class AIInferencePipeline:
         Runs SAM2 inference asynchronously to generate a high-quality segmentation mask.
         Returns a binary numpy array (mask).
         """
-        import cv2
-        import numpy as np
 
         if MOCK_INFERENCE:
             # Simulate processing time
@@ -254,7 +251,6 @@ class AIInferencePipeline:
             mask[y1:y2, x1:x2] = 255
             return mask
 
-        import cv2
 
 
         # If we had a true RT-DETR panoptic/instance segmentation model loaded,

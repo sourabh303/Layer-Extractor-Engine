@@ -26,7 +26,7 @@ async def process_bbox_sequential(bboxes, preprocessed_tensor, original_shape, o
 
         flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
-        output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
+        output_filename = f"layer_{uuid.uuid4().hex}_{i}.png"
         output_path = os.path.join(temp_dir, output_filename)
         output_paths.append(output_path)
     return output_paths
@@ -43,7 +43,7 @@ async def process_bbox_concurrent(bboxes, preprocessed_tensor, original_shape, o
 
         flat_layer_rgba = await asyncio.to_thread(geometry_pipeline.process_layer, original_image, mask)
 
-        output_filename = f"layer_{uuid.uuid4().hex[:8]}_{i}.png"
+        output_filename = f"layer_{uuid.uuid4().hex}_{i}.png"
         output_path = os.path.join(temp_dir, output_filename)
         return output_path
 
@@ -63,6 +63,7 @@ async def main():
     preprocessed_tensor, original_shape = inference_pipeline.preprocess_image_for_sam2(original_image)
     temp_dir = "/tmp/AILayerEngineBench"
     os.makedirs(temp_dir, exist_ok=True)
+    os.chmod(temp_dir, 0o700)
 
     # Warmup
     await process_bbox_sequential(bboxes[:1], preprocessed_tensor, original_shape, original_image, temp_dir)

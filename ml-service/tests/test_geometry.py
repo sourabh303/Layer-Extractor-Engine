@@ -50,3 +50,17 @@ def test_process_layer_black_color_skipped():
 
     assert result.shape == (100, 100, 4)
     assert np.all(result == 0)
+
+def test_process_layer_empty_contours(mocker):
+    image = np.zeros((100, 100, 3), dtype=np.uint8)
+    image[20:80, 20:80] = [255, 0, 0] # Blue square
+
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[20:80, 20:80] = 255
+
+    mocker.patch('cv2.findContours', return_value=([], None))
+
+    result = GeometryCleanupPipeline.process_layer(image, mask)
+
+    assert result.shape == (100, 100, 4)
+    assert np.all(result == 0)
