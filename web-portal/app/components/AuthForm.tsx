@@ -42,6 +42,7 @@ export default function AuthForm() {
           <input
             id="email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
@@ -55,6 +56,7 @@ export default function AuthForm() {
           <input
             id="password"
             type="password"
+            autoComplete={isLogin ? "current-password" : "new-password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required

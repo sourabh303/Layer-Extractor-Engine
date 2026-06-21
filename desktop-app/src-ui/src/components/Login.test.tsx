@@ -37,8 +37,8 @@ describe('Login Component', () => {
   it('renders login view by default', () => {
     render(<Login />);
     expect(screen.getByText('Welcome Back')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Email Address')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
   });
 
@@ -64,8 +64,8 @@ describe('Login Component', () => {
     });
 
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
@@ -84,8 +84,8 @@ describe('Login Component', () => {
     mockFetch.mockResolvedValueOnce({ ok: true });
 
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
@@ -122,8 +122,8 @@ describe('Login Component', () => {
     // Switch to sign up
     fireEvent.click(screen.getByText('Sign up'));
 
-    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'new@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'newpassword' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'new@test.com' } });
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'newpassword' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start Trial' }));
 
     await waitFor(() => {
@@ -154,8 +154,8 @@ describe('Login Component', () => {
     });
 
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
@@ -174,8 +174,8 @@ describe('Login Component', () => {
     mockFetch.mockResolvedValueOnce({ ok: false });
 
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Email Address'), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
