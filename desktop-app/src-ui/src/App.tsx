@@ -367,45 +367,49 @@ function App() {
               <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0' }}>Export Options</h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.psd} onChange={() => handleFormatChange('psd')} />
-                  PSD
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.svg} onChange={() => handleFormatChange('svg')} />
-                  SVG
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.png} onChange={() => handleFormatChange('png')} />
-                  PNG
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.tiff} onChange={() => handleFormatChange('tiff')} />
-                  TIFF
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input id="format-psd" type="checkbox" checked={exportFormats.psd} onChange={() => handleFormatChange('psd')} style={{ cursor: 'pointer' }} />
+                  <label htmlFor="format-psd" style={{ cursor: 'pointer' }}>PSD</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input id="format-svg" type="checkbox" checked={exportFormats.svg} onChange={() => handleFormatChange('svg')} style={{ cursor: 'pointer' }} />
+                  <label htmlFor="format-svg" style={{ cursor: 'pointer' }}>SVG</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input id="format-png" type="checkbox" checked={exportFormats.png} onChange={() => handleFormatChange('png')} style={{ cursor: 'pointer' }} />
+                  <label htmlFor="format-png" style={{ cursor: 'pointer' }}>PNG</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input id="format-tiff" type="checkbox" checked={exportFormats.tiff} onChange={() => handleFormatChange('tiff')} style={{ cursor: 'pointer' }} />
+                  <label htmlFor="format-tiff" style={{ cursor: 'pointer' }}>TIFF</label>
+                </div>
 
                 {exportFormats.tiff && (
                   <div style={{ marginLeft: '24px', display: 'flex', gap: '10px', fontSize: '13px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <input
+                        id="tiff-cmyk"
                         type="radio"
                         name="tiffColorSpace"
                         value={Format.TiffCmyk}
                         checked={tiffColorSpace === Format.TiffCmyk}
                         onChange={() => setTiffColorSpace(Format.TiffCmyk)}
+                        style={{ cursor: 'pointer' }}
                       />
-                      CMYK
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <label htmlFor="tiff-cmyk" style={{ cursor: 'pointer' }}>CMYK</label>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <input
+                        id="tiff-rgb"
                         type="radio"
                         name="tiffColorSpace"
                         value={Format.TiffRGB}
                         checked={tiffColorSpace === Format.TiffRGB}
                         onChange={() => setTiffColorSpace(Format.TiffRGB)}
+                        style={{ cursor: 'pointer' }}
                       />
-                      RGB
-                    </label>
+                      <label htmlFor="tiff-rgb" style={{ cursor: 'pointer' }}>RGB</label>
+                    </div>
                   </div>
                 )}
               </div>
