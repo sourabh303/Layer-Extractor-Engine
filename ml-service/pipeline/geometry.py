@@ -35,7 +35,22 @@ class GeometryCleanupPipeline:
 
         k = min(KMEANS_MAX_CLUSTERS, len(pixels))
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
-        _, labels, centers = cv2.kmeans(pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+        # ⚡ Bolt Optimization: Subsample pixels if there are too many to avoid O(N) K-Means overhead
+        MAX_PIXELS = 100000
+        if len(pixels) > MAX_PIXELS:
+            idx = np.random.choice(len(pixels), MAX_PIXELS, replace=False)
+            sampled_pixels = pixels[idx]
+            _, _, centers = cv2.kmeans(sampled_pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+            # Fast vectorized nearest-neighbor assignment for all pixels
+            p_sq = np.sum(pixels**2, axis=1, keepdims=True)
+            c_sq = np.sum(centers**2, axis=1)
+            pc = np.dot(pixels, centers.T)
+            dist = p_sq - 2 * pc + c_sq
+            labels = np.argmin(dist, axis=1).reshape(-1, 1).astype(np.int32)
+        else:
+            _, labels, centers = cv2.kmeans(pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
         centers = np.uint8(centers)
 
