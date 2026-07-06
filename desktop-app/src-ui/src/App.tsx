@@ -367,27 +367,28 @@ function App() {
               <h3 style={{ fontSize: '14px', color: '#aaa', margin: '0' }}>Export Options</h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.psd} onChange={() => handleFormatChange('psd')} />
+                <label htmlFor="format-psd" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input id="format-psd" type="checkbox" checked={exportFormats.psd} onChange={() => handleFormatChange('psd')} />
                   PSD
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.svg} onChange={() => handleFormatChange('svg')} />
+                <label htmlFor="format-svg" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input id="format-svg" type="checkbox" checked={exportFormats.svg} onChange={() => handleFormatChange('svg')} />
                   SVG
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.png} onChange={() => handleFormatChange('png')} />
+                <label htmlFor="format-png" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input id="format-png" type="checkbox" checked={exportFormats.png} onChange={() => handleFormatChange('png')} />
                   PNG
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exportFormats.tiff} onChange={() => handleFormatChange('tiff')} />
+                <label htmlFor="format-tiff" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input id="format-tiff" type="checkbox" checked={exportFormats.tiff} onChange={() => handleFormatChange('tiff')} />
                   TIFF
                 </label>
 
                 {exportFormats.tiff && (
                   <div style={{ marginLeft: '24px', display: 'flex', gap: '10px', fontSize: '13px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <label htmlFor="color-cmyk" style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                       <input
+                        id="color-cmyk"
                         type="radio"
                         name="tiffColorSpace"
                         value={Format.TiffCmyk}
@@ -396,8 +397,9 @@ function App() {
                       />
                       CMYK
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <label htmlFor="color-rgb" style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                       <input
+                        id="color-rgb"
                         type="radio"
                         name="tiffColorSpace"
                         value={Format.TiffRGB}

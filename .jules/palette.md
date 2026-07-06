@@ -1,4 +1,3 @@
-## 2025-02-20 - Explicit Form Labels
-
-**Learning:** Both the desktop app and web portal frontends used implicit label wrapping or lacked explicit `id`/`htmlFor` bindings entirely on form inputs, causing screen reader accessibility issues.
-**Action:** Always ensure form inputs use explicit `<label htmlFor="id">` elements with corresponding `id` attributes on the input fields, rather than implicit wrapping or relying purely on placeholder text, to ensure proper screen reader support and accessibility across both React codebases.
+## 2024-05-24 - Explicit Label Associations for Checkboxes and Radios
+**Learning:** In React frontends, relying on implicit `<label>` wrapping for checkboxes and radio buttons can sometimes lead to inconsistent screen reader support. Explicit `htmlFor` attributes matching input `id`s provide more robust accessibility. However, converting the wrapper from a `<label>` to a `<div>` causes regression in the clickable hit area of the input.
+**Action:** When converting implicit `<label>` wrappers to explicit ones, keep the wrapper as a `<label htmlFor="id">` and add the `id` to the `<input>` instead of changing the wrapper to a `<div>`. This maintains the full clickable hit area (including gaps and padding) while improving accessibility.
