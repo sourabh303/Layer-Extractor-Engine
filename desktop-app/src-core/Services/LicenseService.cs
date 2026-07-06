@@ -136,7 +136,7 @@ namespace src_core.Services
             try
             {
                 // Note: We use the REST API here via GET to check the license table
-                using var request = new HttpRequestMessage(HttpMethod.Get, $"{_supabaseUrl}/rest/v1/licenses?user_id=eq.{userId}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{_supabaseUrl}/rest/v1/licenses?user_id=eq.{Uri.EscapeDataString(userId)}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
                 request.Headers.Add("apikey", _supabaseAnonKey);
 
@@ -195,7 +195,7 @@ namespace src_core.Services
         {
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Patch, $"{_supabaseUrl}/rest/v1/licenses?user_id=eq.{userId}");
+                using var request = new HttpRequestMessage(HttpMethod.Patch, $"{_supabaseUrl}/rest/v1/licenses?user_id=eq.{Uri.EscapeDataString(userId)}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
                 request.Headers.Add("apikey", _supabaseAnonKey);
                 request.Headers.Add("Prefer", "return=minimal");
