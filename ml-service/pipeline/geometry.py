@@ -35,7 +35,26 @@ class GeometryCleanupPipeline:
 
         k = min(KMEANS_MAX_CLUSTERS, len(pixels))
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
-        _, labels, centers = cv2.kmeans(pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+        # ⚡ Bolt Optimization: Subsample pixels for fast K-Means cluster center calculation
+        max_pixels = 10000
+        if len(pixels) > max_pixels:
+            import math
+            step = math.ceil(len(pixels) / max_pixels)
+            sample_pixels = np.ascontiguousarray(pixels[::step][:max_pixels])
+        else:
+            sample_pixels = pixels
+
+        _, _, centers = cv2.kmeans(sample_pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+        # ⚡ Bolt Optimization: Vectorized Euclidean distance calculation via NumPy
+        # to map the full set of original pixels to their nearest centers (O(N) mapping).
+        p_sq = np.sum(pixels**2, axis=1, keepdims=True)
+        c_sq = np.sum(centers**2, axis=1, keepdims=True).T
+        pc = np.dot(pixels, centers.T)
+
+        dist_sq = p_sq - 2*pc + c_sq
+        labels = np.argmin(dist_sq, axis=1).astype(np.int32).reshape(-1, 1)
 
         centers = np.uint8(centers)
 
