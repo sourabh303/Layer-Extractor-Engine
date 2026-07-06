@@ -33,3 +33,6 @@
 ## 2024-06-21 - Unblocking FastAPI Event Loop
 **Learning:** In Python `ml-service`, heavy synchronous ML inference calls (like OpenCV preprocessing or ONNX execution) block the underlying `asyncio` event loop when called directly from `async def` endpoints, effectively converting the concurrent server into a sequential one. These calls must be wrapped in `await asyncio.to_thread(func, *args)` to delegate execution to a worker thread and maintain concurrency.
 **Action:** Wrapped `inference_pipeline.run_rt_detr_detection` and `inference_pipeline.preprocess_image_for_sam2` in `asyncio.to_thread` within `main.py`.
+## 2024-07-06 - [Optimize OpenCV K-Means clustering on large pixel masks]
+**Learning:** Running `cv2.kmeans` on a full high-resolution image array where the motif occupies a large area is still extremely slow (O(N)). K-Means convergence is mathematically stable on a small representative sample.
+**Action:** Subsample the pixels (e.g., maximum 10,000) for the cluster center calculation, then use a vectorized Euclidean distance calculation (`p_sq - 2*pc + c_sq`) via NumPy to map the full set of original pixels to their nearest centers. This achieves massive speedups while retaining exactness.
